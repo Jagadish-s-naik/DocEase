@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
       // Fetch usage stats
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const { data: usageData } = await supabase
+      const { data: usageData, error: usageError } = await supabase
         .from('usage_limits')
         .select('*')
         .eq('user_id', user.id)
@@ -103,9 +103,20 @@ export default function DashboardPage() {
 
       if (usageData) {
         setUsageStats({
-          used: (usageData as any).documents_processed,
-          limit: (usageData as any).limit_value,
+          used: (usageData as any).documents_processed || 0,
+          limit: (usageData as any).limit_value || 3,
         });
+      } else {
+        // Create default usage limit for new users
+        const usageLimitsTable: any = supabase.from('usage_limits');
+        await usageLimitsTable.insert({
+          user_id: user.id,
+          month: currentMonth,
+          plan_type: 'free',
+          limit_value: 3,
+          documents_processed: 0,
+        });
+        setUsageStats({ used: 0, limit: 3 });
       }
 
     } catch (error: any) {
@@ -185,6 +196,13 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-bold text-primary-600">DocEase</h1>
             </Link>
             <div className="flex items-center gap-4">
+              <Link
+                href="/upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Upload Document
+              </Link>
               <span className="text-sm text-gray-600">
                 {profile?.full_name || user.email}
               </span>
