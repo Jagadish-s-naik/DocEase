@@ -38,19 +38,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify document exists and belongs to user
-    const { data: document, error: docError } = await supabase
+    const { data: documentData, error: docError } = await supabase
       .from('documents')
       .select('*')
       .eq('id', documentId)
       .eq('user_id', user.id)
       .single();
 
-    if (docError || !document) {
+    if (docError || !documentData) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found', 404)),
         { status: 404 }
       );
     }
+
+    const document: any = documentData;
 
     // Check if already processing or completed
     if (document.processing_status === 'completed') {
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
       if (existingResult) {
         return NextResponse.json(
           createSuccessResponse({
-            resultId: existingResult.id,
+            resultId: (existingResult as any).id,
             status: 'completed',
             result: existingResult,
           }, 'Document already processed')
@@ -135,23 +137,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Get document status
-    const { data: document, error: docError } = await supabase
+    const { data: documentData2, error: docError } = await supabase
       .from('documents')
       .select('*')
       .eq('id', documentId)
       .eq('user_id', user.id)
       .single();
 
-    if (docError || !document) {
+    if (docError || !documentData2) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found', 404)),
         { status: 404 }
       );
     }
 
+    const document2: any = documentData2;
+
     // Get result if completed
     let result = null;
-    if (document.processing_status === 'completed') {
+    if (document2.processing_status === 'completed') {
       const { data: resultData } = await supabase
         .from('document_results')
         .select('*')
@@ -163,11 +167,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       createSuccessResponse({
-        documentId: document.id,
-        status: document.processing_status,
-        ocrConfidence: document.ocr_confidence,
-        documentType: document.document_type,
-        languageDetected: document.language_detected,
+        documentId: document2.id,
+        status: document2.processing_status,
+        ocrConfidence: document2.ocr_confidence,
+        documentType: document2.document_type,
+        languageDetected: document2.language_detected,
         result,
       })
     );

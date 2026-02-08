@@ -66,8 +66,8 @@ export default function DashboardPage() {
 
       // Fetch results for completed documents
       const completedIds = docsData
-        ?.filter(d => d.processing_status === 'completed')
-        .map(d => d.id) || [];
+        ?.filter((d: any) => d.processing_status === 'completed')
+        .map((d: any) => d.id) || [];
 
       if (completedIds.length > 0) {
         const { data: resultsData } = await supabase
@@ -76,7 +76,7 @@ export default function DashboardPage() {
           .in('document_id', completedIds);
 
         const resultsMap: Record<string, DocumentResult> = {};
-        resultsData?.forEach(r => {
+        resultsData?.forEach((r: any) => {
           resultsMap[r.document_id] = r;
         });
         setResults(resultsMap);
@@ -84,11 +84,11 @@ export default function DashboardPage() {
 
       // Calculate stats
       const total = docsData?.length || 0;
-      const pending = docsData?.filter(d => 
+      const pending = docsData?.filter((d: any) => 
         ['queued', 'ocr_in_progress', 'classification_in_progress', 'simplification_in_progress', 'translation_in_progress'].includes(d.processing_status)
       ).length || 0;
-      const completed = docsData?.filter(d => d.processing_status === 'completed').length || 0;
-      const failed = docsData?.filter(d => d.processing_status === 'failed').length || 0;
+      const completed = docsData?.filter((d: any) => d.processing_status === 'completed').length || 0;
+      const failed = docsData?.filter((d: any) => d.processing_status === 'failed').length || 0;
 
       setStats({ total, pending, completed, failed });
 
@@ -103,8 +103,8 @@ export default function DashboardPage() {
 
       if (usageData) {
         setUsageStats({
-          used: usageData.documents_processed,
-          limit: usageData.limit_value,
+          used: (usageData as any).documents_processed,
+          limit: (usageData as any).limit_value,
         });
       }
 

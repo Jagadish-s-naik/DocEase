@@ -99,6 +99,7 @@ export function useAuth() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: fullName,
         },
@@ -112,15 +113,15 @@ export function useAuth() {
 
     // Create profile manually after successful signup
     if (data.user) {
-      await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          full_name: fullName || 'User',
-          preferred_language: 'en',
-        })
-        .select()
-        .single();
+      // Wait a moment for auth to settle
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const profilesTable: any = supabase.from('profiles');
+      await profilesTable.insert({
+        id: data.user.id,
+        full_name: fullName || 'User',
+        preferred_language: 'en',
+      }).select().single();
     }
     
     return { data, error };
@@ -171,13 +172,11 @@ export function useAuth() {
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + 7); // 7 days
 
-      await supabase
-        .from('profiles')
-        .update({
-          is_guest: true,
-          guest_expires_at: expiryDate.toISOString(),
-        })
-        .eq('id', data.user.id);
+      const profilesTable: any = supabase.from('profiles');
+      await profilesTable.update({
+        is_guest: true,
+        guest_expires_at: expiryDate.toISOString(),
+      }).eq('id', data.user.id);
     }
 
     return { data, error };
@@ -192,6 +191,6 @@ export function useAuth() {
     signOut,
     createGuestUser,
     isAuthenticated: !!authState.user,
-    isGuest: authState.profile?.is_guest || false,
+    isGuest: (authState.profile as any)?.is_guest || false,
   };
 }

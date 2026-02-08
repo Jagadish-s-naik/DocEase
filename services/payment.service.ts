@@ -57,8 +57,8 @@ export class PaymentService {
         .eq('user_id', userId)
         .single();
 
-      if (existingSub?.stripe_customer_id) {
-        customerId = existingSub.stripe_customer_id;
+      if ((existingSub as any)?.stripe_customer_id) {
+        customerId = (existingSub as any).stripe_customer_id;
       } else {
         customerId = await this.createCustomer(userId, email);
       }
@@ -241,7 +241,7 @@ export class PaymentService {
         amount: session.amount_total,
       },
       user_id: userId,
-    });
+    } as any);
   }
 
   /**
@@ -270,7 +270,7 @@ export class PaymentService {
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end,
-      }, {
+      } as any, {
         onConflict: 'stripe_subscription_id',
       });
 
@@ -283,7 +283,7 @@ export class PaymentService {
         month: currentMonth,
         plan_type: 'paid',
         limit_value: 999999,
-      }, {
+      } as any, {
         onConflict: 'user_id,month',
       });
   }
@@ -294,12 +294,10 @@ export class PaymentService {
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     const supabase = createServerClient();
 
-    await supabase
-      .from('subscriptions')
-      .update({
-        status: SubscriptionStatus.CANCELED,
-      })
-      .eq('stripe_subscription_id', subscription.id);
+    const subscriptionsTable: any = supabase.from('subscriptions');
+    await subscriptionsTable.update({
+      status: SubscriptionStatus.CANCELED,
+    }).eq('stripe_subscription_id', subscription.id);
   }
 
   /**
@@ -321,15 +319,15 @@ export class PaymentService {
 
     // Record payment
     await supabase.from('payments').insert({
-      user_id: subscription.user_id,
-      subscription_id: subscription.user_id,
+      user_id: (subscription as any).user_id,
+      subscription_id: (subscription as any).user_id,
       stripe_payment_intent_id: invoice.payment_intent as string,
       amount: invoice.amount_paid,
       currency: invoice.currency,
       status: PaymentStatus.SUCCEEDED,
       payment_method: 'card',
       invoice_url: invoice.hosted_invoice_url,
-    });
+    } as any);
   }
 
   /**
@@ -348,22 +346,20 @@ export class PaymentService {
 
     // Record failed payment
     await supabase.from('payments').insert({
-      user_id: subscription.user_id,
-      subscription_id: subscription.user_id,
+      user_id: (subscription as any).user_id,
+      subscription_id: (subscription as any).user_id,
       stripe_payment_intent_id: invoice.payment_intent as string,
       amount: invoice.amount_due,
       currency: invoice.currency,
       status: PaymentStatus.FAILED,
       payment_method: 'card',
-    });
+    } as any);
 
     // Update subscription status
-    await supabase
-      .from('subscriptions')
-      .update({
-        status: SubscriptionStatus.PAST_DUE,
-      })
-      .eq('stripe_subscription_id', invoice.subscription as string);
+    const subscriptionsTable: any = supabase.from('subscriptions');
+    await subscriptionsTable.update({
+      status: SubscriptionStatus.PAST_DUE,
+    }).eq('stripe_subscription_id', invoice.subscription as string);
 
     // TODO: Send email notification to user
   }

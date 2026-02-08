@@ -71,7 +71,7 @@ export class DocumentProcessingService {
 
       // Step 6: Translation - Translate to other languages
       await this.updateProcessingStatus(documentId, ProcessingStatus.TRANSLATION_IN_PROGRESS);
-      const translations: Record<SupportedLanguage, any> = {
+      const translations: any = {
         [primaryLanguage]: simplification.simplified_content,
       };
 
@@ -180,10 +180,8 @@ export class DocumentProcessingService {
   private async updateProcessingStatus(documentId: string, status: ProcessingStatus) {
     const supabase = createServerClient();
     
-    await supabase
-      .from('documents')
-      .update({ processing_status: status })
-      .eq('id', documentId);
+    const documentsTable: any = supabase.from('documents');
+    await documentsTable.update({ processing_status: status }).eq('id', documentId);
   }
 
   /**
@@ -192,10 +190,8 @@ export class DocumentProcessingService {
   private async updateDocument(documentId: string, updates: Partial<Document>) {
     const supabase = createServerClient();
     
-    await supabase
-      .from('documents')
-      .update(updates)
-      .eq('id', documentId);
+    const documentsTable: any = supabase.from('documents');
+    await documentsTable.update(updates).eq('id', documentId);
   }
 
   /**
@@ -206,7 +202,7 @@ export class DocumentProcessingService {
     
     const { data, error } = await supabase
       .from('document_results')
-      .insert(result)
+      .insert(result as any)
       .select()
       .single();
 
@@ -223,7 +219,7 @@ export class DocumentProcessingService {
   private async incrementUsage(userId: string) {
     const supabase = createServerClient();
     
-    await supabase.rpc('increment_usage', { p_user_id: userId });
+    await supabase.rpc('increment_usage', { p_user_id: userId } as any);
   }
 
   /**
@@ -291,22 +287,22 @@ export class DocumentProcessingService {
     }
 
     // Check if translation already exists
-    if (result.translations[targetLanguage]) {
+    if ((result as any).translations[targetLanguage]) {
       return result as DocumentResult;
     }
 
     // Translate
     const translated = await this.llmService.translateContent(
-      result.simplified_content,
+      (result as any).simplified_content,
       targetLanguage
     );
 
     // Update result
-    const { data: updated, error: updateError } = await supabase
-      .from('document_results')
+    const resultsTable: any = supabase.from('document_results');
+    const { data: updated, error: updateError } = await resultsTable
       .update({
         translations: {
-          ...result.translations,
+          ...(result as any).translations,
           [targetLanguage]: translated,
         },
       })

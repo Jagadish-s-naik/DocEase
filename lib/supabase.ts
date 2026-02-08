@@ -9,6 +9,26 @@ export const createClient = () => {
   );
 };
 
+// Server-side Supabase client (for API routes - uses service role for admin access)
+export const createServerClient = () => {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+};
+
+// Service role client (for backend operations that bypass RLS)
+export const createServiceClient = () => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
+  }
+  
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+};
+
 // Storage configuration
 export const STORAGE_BUCKETS = {
   DOCUMENTS: 'documents',

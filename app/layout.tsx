@@ -7,6 +7,7 @@ import { APP_NAME, APP_DESCRIPTION } from '@/config/constants';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: `${APP_NAME} - AI Document Simplifier for Common People`,
   description: APP_DESCRIPTION,
   keywords: ['document simplifier', 'AI', 'OCR', 'India', 'government documents', 'legal documents'],

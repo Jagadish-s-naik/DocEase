@@ -59,7 +59,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
       setDocument(docData);
 
       // Fetch result if completed
-      if (docData.processing_status === 'completed') {
+      if ((docData as any).processing_status === 'completed') {
         const { data: resultData, error: resultError } = await supabase
           .from('document_results')
           .select('*')
@@ -251,7 +251,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                     <span className="text-sm font-medium text-gray-700">Money Involved</span>
                   </div>
                   <p className="text-2xl font-bold">
-                    {result.intent_analysis.money_amount || 'None'}
+                    {(result.intent_analysis as any).money_amount || 'None'}
                   </p>
                 </div>
 

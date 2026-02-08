@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!FILE_LIMITS.ALLOWED_MIME_TYPES.includes(file.type)) {
+    if (!FILE_LIMITS.ALLOWED_MIME_TYPES.includes(file.type as any)) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.VALIDATION_ERROR, VALIDATION_MESSAGES.INVALID_FILE_TYPE, 400)),
         { status: 400 }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Check usage limit
     const { data: canProcess, error: limitError } = await supabase
-      .rpc('check_usage_limit', { p_user_id: user.id });
+      .rpc('check_usage_limit', { p_user_id: user.id } as any);
 
     if (limitError || !canProcess) {
       return NextResponse.json(
@@ -84,18 +84,19 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(storagePath);
 
     // Calculate auto-expiry (if enabled)
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('auto_delete_days')
       .eq('id', user.id)
       .single();
 
+    const profile: any = profileData;
     const expiresAt = profile?.auto_delete_days
       ? new Date(Date.now() + profile.auto_delete_days * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
     // Create document record
-    const { data: document, error: dbError } = await supabase
+    const { data: documentData, error: dbError } = await supabase
       .from('documents')
       .insert({
         user_id: user.id,
@@ -107,11 +108,13 @@ export async function POST(request: NextRequest) {
         upload_status: UploadStatus.COMPLETED,
         encrypted: true,
         expires_at: expiresAt,
-      })
+      } as any)
       .select()
       .single();
 
-    if (dbError || !document) {
+    const document: any = documentData;
+
+    if (dbError || !documentData) {
       // Cleanup uploaded file
       await supabase.storage.from('documents').remove([storagePath]);
       throw new AppError(ErrorCode.SERVER_ERROR, 'Failed to create document record', 500);
@@ -171,7 +174,7 @@ export async function GET(request: NextRequest) {
 
     const isPaid = !!subscription;
     const limit = isPaid ? 999999 : 3;
-    const used = usage?.documents_processed || 0;
+    const used = (usage as any)?.documents_processed || 0;
     const remaining = Math.max(0, limit - used);
 
     return NextResponse.json(

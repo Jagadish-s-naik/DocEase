@@ -31,8 +31,11 @@ export default function AuthPage() {
       } else if (mode === 'signup') {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
-        toast.success('Account created! Please check your email to verify.');
-        router.push('/dashboard');
+        toast.success('Account created successfully! Logging you in...');
+        // Auto-login after signup
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
       } else if (mode === 'otp') {
         const { error } = await signInWithOTP(email);
         if (error) throw error;
