@@ -25,23 +25,54 @@ export function useAuth() {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Fetch user profile
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        setAuthState({
-          user: session.user,
-          profile: profile || null,
-          session,
-          loading: false,
-        });
-      } else {
+          // If no profile exists, create one
+          if (profileError || !profile) {
+            console.log('Creating profile for user:', session.user.id);
+            const profilesTable: any = supabase.from('profiles');
+            const { data: newProfile } = await profilesTable
+              .insert({
+                id: session.user.id,
+                full_name: session.user.email?.split('@')[0] || 'User',
+                preferred_language: 'en',
+              })
+              .select()
+              .single();
+
+            setAuthState({
+              user: session.user,
+              profile: newProfile || null,
+              session,
+              loading: false,
+            });
+          } else {
+            setAuthState({
+              user: session.user,
+              profile: profile,
+              session,
+              loading: false,
+            });
+          }
+        } else {
+          setAuthState({
+            user: null,
+            profile: null,
+            session: null,
+            loading: false,
+          });
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
         setAuthState({
           user: null,
           profile: null,
@@ -56,27 +87,51 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          // Fetch updated profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        try {
+          if (session?.user) {
+            // Fetch updated profile
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          setAuthState({
-            user: session.user,
-            profile: profile || null,
-            session,
-            loading: false,
-          });
-        } else {
-          setAuthState({
-            user: null,
-            profile: null,
-            session: null,
-            loading: false,
-          });
+            // If no profile, create one
+            if (profileError || !profile) {
+              const profilesTable: any = supabase.from('profiles');
+              const { data: newProfile } = await profilesTable
+                .insert({
+                  id: session.user.id,
+                  full_name: session.user.email?.split('@')[0] || 'User',
+                  preferred_language: 'en',
+                })
+                .select()
+                .single();
+
+              setAuthState({
+                user: session.user,
+                profile: newProfile || null,
+                session,
+                loading: false,
+              });
+            } else {
+              setAuthState({
+                user: session.user,
+                profile: profile,
+                session,
+                loading: false,
+              });
+            }
+          } else {
+            setAuthState({
+              user: null,
+              profile: null,
+              session: null,
+              loading: false,
+            });
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error);
         }
       }
     );

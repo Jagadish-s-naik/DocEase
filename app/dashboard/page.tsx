@@ -45,12 +45,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
+      console.log('User found, fetching dashboard data');
       fetchDashboardData();
+    } else if (!authLoading) {
+      console.log('No user and not loading, should redirect');
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
+
+    console.log('Fetching dashboard data for user:', user.id);
 
     try {
       // Fetch documents
@@ -61,7 +67,12 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (docsError) throw docsError;
+      if (docsError) {
+        console.error('Documents fetch error:', docsError);
+        throw docsError;
+      }
+      
+      console.log('Documents fetched:', docsData?.length || 0);
       setDocuments(docsData || []);
 
       // Fetch results for completed documents
@@ -121,8 +132,11 @@ export default function DashboardPage() {
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       toast.error('Failed to load dashboard data');
+      // Set loading to false even on error so UI isn't stuck
     } finally {
+      console.log('Dashboard data fetch complete');
       setLoading(false);
     }
   };
