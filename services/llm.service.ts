@@ -41,7 +41,7 @@ export class LLMService {
         break;
     }
 
-    if (!this.apiKey) {
+    if (!this.apiKey && process.env.DEMO_MODE !== 'true') {
       throw new AppError(
         ErrorCode.SERVER_ERROR,
         `Missing API key for ${provider}`,
@@ -54,6 +54,16 @@ export class LLMService {
    * Generate completion from LLM
    */
   async complete(prompt: string, systemPrompt?: string): Promise<LLMResponse> {
+    // DEMO MODE: Return mock response
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('🎭 DEMO MODE: Using mock LLM response');
+      return {
+        content: 'This is a demo simplified version of your document. In production, this would contain AI-generated simplified content.',
+        usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+        model: 'demo-model'
+      };
+    }
+    
     try {
       switch (this.provider) {
         case 'openai':
@@ -193,6 +203,25 @@ export class LLMService {
    * Classify document type and extract intent
    */
   async classifyDocument(text: string): Promise<ClassificationResult> {
+    // DEMO MODE: Return mock classification
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('🎭 DEMO MODE: Using mock classification result');
+      return {
+        document_type: 'government_notice' as DocumentType,
+        confidence: 0.92,
+        intent_analysis: {
+          action_required: true,
+          deadline: '2026-03-01',
+          money_involved: false,
+          currency: null,
+          penalty_risk: false,
+          urgency: 'medium',
+          summary: 'This appears to be an official government notice requiring your attention.'
+        },
+        reasoning: 'Demo mode classification - document type detected based on mock analysis.'
+      };
+    }
+    
     const systemPrompt = CLASSIFICATION_SYSTEM_PROMPT;
     const userPrompt = CLASSIFICATION_USER_PROMPT.replace('{document_text}', text);
 
@@ -232,6 +261,51 @@ export class LLMService {
     documentType: DocumentType,
     language: SupportedLanguage
   ): Promise<SimplificationResult> {
+    // DEMO MODE: Return mock simplification
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('🎭 DEMO MODE: Using mock simplification result');
+      const simplifiedContent: SimplifiedContent = {
+        language,
+        sections: {
+          what_is_this: 'This is a demonstration of the document simplification feature. Your document has been analyzed.',
+          action_required: 'In a real scenario, this section would tell you exactly what you need to do.',
+          deadlines: 'Important dates and deadlines would be clearly highlighted here.',
+          money_matters: 'Any financial implications would be explained in simple terms.',
+          risks_penalties: 'Potential consequences and risks would be outlined clearly.',
+          key_points: [
+            'Demo mode is active - using mock data',
+            'Your document was successfully uploaded',
+            'Processing pipeline is working correctly',
+            'Real AI would provide detailed simplification'
+          ],
+          what_to_do_next: [
+            'Review this simplified version',
+            'Check the translations below',
+            'Take any necessary actions',
+            'Configure real API keys for production use'
+          ],
+          contact_info: {
+            department: 'Demo Department',
+            phone: null,
+            email: null,
+            website: null
+          }
+        },
+        confidence_score: 0.95,
+        complexity_reduction: 0.75
+      };
+
+      return {
+        simplified_content: simplifiedContent,
+        original_complexity: 0.85,
+        simplified_complexity: 0.15,
+        readability_improvement: 0.70,
+        model_used: 'demo-model',
+        tokens_used: 150,
+        warnings: []
+      };
+    }
+    
     const template = SIMPLIFICATION_PROMPTS[documentType][language];
     const systemPrompt = template.system;
     const userPrompt = template.user.replace('{document_text}', text);
@@ -284,6 +358,21 @@ export class LLMService {
     content: SimplifiedContent,
     targetLanguage: SupportedLanguage
   ): Promise<SimplifiedContent> {
+    // DEMO MODE: Return mock translation
+    if (process.env.DEMO_MODE === 'true') {
+      console.log(`🎭 DEMO MODE: Using mock translation for ${targetLanguage}`);
+      return {
+        ...content,
+        language: targetLanguage,
+        sections: {
+          ...content.sections,
+          what_is_this: `[${targetLanguage.toUpperCase()}] Demo translation of document explanation`,
+          action_required: `[${targetLanguage.toUpperCase()}] Demo translation of actions needed`,
+          deadlines: `[${targetLanguage.toUpperCase()}] Demo translation of deadlines`,
+        }
+      };
+    }
+    
     const systemPrompt = TRANSLATION_SYSTEM_PROMPT;
     const userPrompt = TRANSLATION_USER_PROMPT
       .replace('{target_language}', targetLanguage)

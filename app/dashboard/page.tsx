@@ -317,7 +317,10 @@ export default function DashboardPage() {
         {/* Documents List */}
         <div className="card">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h3 className="text-xl font-bold text-gray-900">Recent Documents</h3>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Recent Documents</h3>
+              <p className="text-sm text-gray-600 mt-1">All processed documents and their results are permanently stored and accessible</p>
+            </div>
             
             <div className="flex gap-3 w-full sm:w-auto">
               {/* Search */}
@@ -407,6 +410,63 @@ export default function DashboardPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </Link>
+                          )}
+                          {(doc.processing_status === 'queued' || doc.processing_status === 'failed') && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/process', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ documentId: doc.id }),
+                                  });
+                                  if (!response.ok) {
+                                    const errorData = await response.json();
+                                    console.error('Process error:', errorData);
+                                    toast.error(errorData.error || 'Processing failed');
+                                  } else {
+                                    toast.success('Processing started! This may take 30-60 seconds...');
+                                    
+                                    // Poll for completion
+                                    let attempts = 0;
+                                    const maxAttempts = 60; // 60 seconds max
+                                    const pollInterval = setInterval(async () => {
+                                      attempts++;
+                                      try {
+                                        const statusRes = await fetch(`/api/documents/${doc.id}`);
+                                        if (statusRes.ok) {
+                                          const docData = await statusRes.json();
+                                          if (docData.processing_status === 'completed') {
+                                            clearInterval(pollInterval);
+                                            toast.success('Processing completed!');
+                                            router.push(`/results/${doc.id}`);
+                                          } else if (docData.processing_status === 'failed') {
+                                            clearInterval(pollInterval);
+                                            toast.error('Processing failed');
+                                            window.location.reload();
+                                          }
+                                        }
+                                        
+                                        if (attempts >= maxAttempts) {
+                                          clearInterval(pollInterval);
+                                          toast.loading('Still processing... Refresh to check status');
+                                          window.location.reload();
+                                        }
+                                      } catch (err) {
+                                        console.error('Polling error:', err);
+                                      }
+                                    }, 1000);
+                                  }
+                                } catch (error: any) {
+                                  console.error('Process error:', error);
+                                  toast.error(error.message);
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
+                              title="Start Processing"
+                            >
+                              Process Now
+                            </button>
                           )}
                           <button
                             onClick={() => handleDelete(doc.id)}

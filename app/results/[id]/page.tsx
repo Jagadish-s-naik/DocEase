@@ -88,8 +88,69 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   };
 
   const handleDownload = () => {
-    // TODO: Implement PDF download
-    toast.success('Download feature coming soon!');
+    if (!result || !simplified) {
+      toast.error('No results to download');
+      return;
+    }
+
+    try {
+      // Create downloadable content
+      let content = `Document: ${document?.file_name}\n`;
+      content += `Processed: ${formatDate(result.created_at)}\n`;
+      content += `Document Type: ${result.document_type}\n\n`;
+      content += `=== SIMPLIFIED VERSION ===\n\n`;
+      
+      if (simplified.sections.what_is_this) {
+        content += `What is this?\n${simplified.sections.what_is_this}\n\n`;
+      }
+      
+      if (simplified.sections.action_required) {
+        content += `Action Required:\n${simplified.sections.action_required}\n\n`;
+      }
+      
+      if (simplified.sections.deadlines) {
+        content += `Important Deadlines:\n${simplified.sections.deadlines}\n\n`;
+      }
+      
+      if (simplified.sections.money_matters) {
+        content += `Money Matters:\n${simplified.sections.money_matters}\n\n`;
+      }
+      
+      if (simplified.sections.risks_penalties) {
+        content += `Risks & Penalties:\n${simplified.sections.risks_penalties}\n\n`;
+      }
+      
+      if (simplified.sections.key_points && simplified.sections.key_points.length > 0) {
+        content += `Key Points:\n`;
+        simplified.sections.key_points.forEach((point: string, i: number) => {
+          content += `${i + 1}. ${point}\n`;
+        });
+        content += `\n`;
+      }
+      
+      if (simplified.sections.what_to_do_next && simplified.sections.what_to_do_next.length > 0) {
+        content += `What to do next:\n`;
+        simplified.sections.what_to_do_next.forEach((step: string, i: number) => {
+          content += `${i + 1}. ${step}\n`;
+        });
+      }
+
+      // Create blob and download
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${document?.file_name.replace(/\.[^/.]+$/, '')}_simplified.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Downloaded successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download');
+    }
   };
 
   const handleShare = () => {

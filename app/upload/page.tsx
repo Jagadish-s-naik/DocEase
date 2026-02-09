@@ -75,7 +75,9 @@ export default function UploadPage() {
       });
 
       if (!processResponse.ok) {
-        throw new Error('Processing failed to start');
+        const errorData = await processResponse.json();
+        console.error('Processing API error:', errorData);
+        throw new Error(errorData.error || 'Processing failed to start');
       }
 
       toast.success('Processing started! Redirecting to dashboard...');

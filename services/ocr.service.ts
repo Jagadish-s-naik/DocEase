@@ -33,6 +33,25 @@ export class OCRService {
   async extractText(file: File): Promise<OCRResult> {
     const startTime = Date.now();
     
+    // DEMO MODE: Return mock OCR result
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('🎭 DEMO MODE: Using mock OCR result');
+      return {
+        text: `This is a demo document extracted from ${file.name}.\n\nThis document contains important information about your request.\n\nPlease review the simplified version below for better understanding.\n\nDemo OCR extraction - showing file processing capabilities.`,
+        confidence: 0.95,
+        language: 'en',
+        page_count: 1,
+        processing_time: Date.now() - startTime,
+        warnings: [],
+        pages: [{
+          page_number: 1,
+          text: `Demo content from ${file.name}`,
+          confidence: 0.95,
+          bounding_boxes: []
+        }]
+      };
+    }
+    
     try {
       // Determine file type
       const fileType = file.type;

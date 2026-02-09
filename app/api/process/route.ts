@@ -6,13 +6,14 @@ import { AppError, ErrorCode, SupportedLanguage } from '@/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 60 seconds for processing
+export const maxDuration = 60; // Max 60 seconds for processing
 
 /**
  * POST /api/process
  * Trigger document processing pipeline
  */
 export async function POST(request: NextRequest) {
+  console.log('🚀 Processing API called');
   try {
     const supabase = createServerClient();
     
