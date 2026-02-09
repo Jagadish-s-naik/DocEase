@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { FILE_LIMITS, VALIDATION_MESSAGES } from '@/config/constants';
 import { generateUniqueFilename, createErrorResponse, createSuccessResponse } from '@/utils/helpers';
 import { AppError, ErrorCode, UploadStatus } from '@/types';

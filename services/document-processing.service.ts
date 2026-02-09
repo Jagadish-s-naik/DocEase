@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { OCRService } from './ocr.service';
 import { LLMService } from './llm.service';
 import {

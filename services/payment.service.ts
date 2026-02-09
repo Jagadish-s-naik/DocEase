@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { AppError, ErrorCode, SubscriptionStatus, PaymentStatus } from '@/types';
 
 /**

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getProcessingService } from '@/services/document-processing.service';
 import { createErrorResponse, createSuccessResponse } from '@/utils/helpers';
 import { AppError, ErrorCode, SupportedLanguage } from '@/types';
