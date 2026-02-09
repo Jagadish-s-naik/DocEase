@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { FileUpload } from '@/components/FileUpload';
@@ -9,10 +9,18 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 
 export default function UploadPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.error('Please login to upload documents');
+      router.push('/auth');
+    }
+  }, [user, authLoading, router]);
 
   const handleFileSelect = async (file: File) => {
     if (!user) {
@@ -69,6 +77,23 @@ export default function UploadPage() {
       setProcessing(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render upload page if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
