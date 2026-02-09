@@ -13,13 +13,28 @@ export default function UploadPage() {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!authLoading && !user) {
-      toast.error('Please login to upload documents');
-      router.push('/auth');
+    console.log('Upload page - Auth state:', { user: !!user, authLoading });
+    
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setCheckingAuth(false);
+    }, 3000);
+
+    if (!authLoading) {
+      setCheckingAuth(false);
+      clearTimeout(timeout);
+      
+      if (!user) {
+        toast.error('Please login to upload documents');
+        router.push('/auth');
+      }
     }
+
+    return () => clearTimeout(timeout);
   }, [user, authLoading, router]);
 
   const handleFileSelect = async (file: File) => {
@@ -79,20 +94,26 @@ export default function UploadPage() {
   };
 
   // Show loading while checking auth
-  if (authLoading) {
+  if (authLoading && checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
   // Don't render upload page if not authenticated (will redirect)
-  if (!user) {
-    return null;
+  if (!user && !authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

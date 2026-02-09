@@ -24,9 +24,15 @@ export default function AuthPage() {
 
     try {
       if (mode === 'login') {
+        console.log('Starting login...');
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          console.error('Login returned error:', error);
+          throw error;
+        }
+        console.log('Login successful, redirecting immediately...');
         toast.success('Welcome back!');
+        // Redirect immediately - profile loads in background
         router.push('/dashboard');
       } else if (mode === 'signup') {
         const { error } = await signUp(email, password, fullName);

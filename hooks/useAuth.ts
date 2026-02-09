@@ -87,51 +87,56 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        try {
-          if (session?.user) {
-            // Fetch updated profile
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            // If no profile, create one
-            if (profileError || !profile) {
-              const profilesTable: any = supabase.from('profiles');
-              const { data: newProfile } = await profilesTable
-                .insert({
-                  id: session.user.id,
-                  full_name: session.user.email?.split('@')[0] || 'User',
-                  preferred_language: 'en',
-                })
-                .select()
+        console.log('Auth state changed:', event, 'User:', session?.user?.id);
+        
+        if (session?.user) {
+          // FAST PATH: Set user immediately, load profile in background
+          console.log('Setting auth state immediately');
+          setAuthState({
+            user: session.user,
+            profile: null,
+            session,
+            loading: false,
+          });
+          
+          // Load profile in background (non-blocking)
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
                 .single();
 
-              setAuthState({
-                user: session.user,
-                profile: newProfile || null,
-                session,
-                loading: false,
-              });
-            } else {
-              setAuthState({
-                user: session.user,
-                profile: profile,
-                session,
-                loading: false,
-              });
+              if (profile) {
+                setAuthState(prev => ({ ...prev, profile }));
+              } else {
+                // Create profile if missing
+                const { data: newProfile } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    full_name: session.user.email?.split('@')[0] || 'User',
+                    preferred_language: 'en',
+                  })
+                  .select()
+                  .single();
+                
+                if (newProfile) {
+                  setAuthState(prev => ({ ...prev, profile: newProfile }));
+                }
+              }
+            } catch (error) {
+              console.error('Background profile load error:', error);
             }
-          } else {
-            setAuthState({
-              user: null,
-              profile: null,
-              session: null,
-              loading: false,
-            });
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
+          }, 100);
+        } else {
+          setAuthState({
+            user: null,
+            profile: null,
+            session: null,
+            loading: false,
+          });
         }
       }
     );
@@ -142,11 +147,24 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+    console.log('Attempting sign in for:', email);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        return { data, error };
+      }
+      
+      console.log('Sign in successful, user:', data.user?.id);
+      return { data, error };
+    } catch (err) {
+      console.error('Sign in exception:', err);
+      return { data: null, error: err as any };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
