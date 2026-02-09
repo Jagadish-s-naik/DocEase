@@ -113,44 +113,19 @@ export function addBreadcrumb(message: string, category?: string, data?: Record<
 }
 
 // ============================================
-// ERROR BOUNDARY WRAPPER
+// ERROR BOUNDARY WRAPPER (Use in React Components)
 // ============================================
+// Note: DefaultErrorFallback component should be in a .tsx file
+// For now, use a simple error handler
 export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: React.ComponentType<{ error: Error; resetError: () => void }>
+  Component: React.ComponentType<P>
 ) {
   if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
     return Sentry.withErrorBoundary(Component, {
-      fallback: fallback || DefaultErrorFallback,
       showDialog: true,
     });
   }
   return Component;
-}
-
-function DefaultErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-        <p className="text-gray-600 mb-4">
-          We're sorry, but something unexpected happened. Our team has been notified.
-        </p>
-        <details className="mb-4">
-          <summary className="cursor-pointer text-sm text-gray-500">Error details</summary>
-          <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
-            {error.message}
-          </pre>
-        </details>
-        <button
-          onClick={resetError}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
-        >
-          Try Again
-        </button>
-      </div>
-    </div>
-  );
 }
 
 // ============================================

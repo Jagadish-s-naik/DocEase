@@ -21,14 +21,14 @@ const transporter = nodemailer.createTransport({
 // EMAIL TEMPLATES
 // ============================================
 const emailTemplates = {
-  processingComplete: (fileName: string, resultUrl: string) => ({
+  processingComplete: (data: { fileName: string; resultUrl: string }) => ({
     subject: '✅ Your document is ready - DocEase',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2563eb;">Your Document is Ready!</h2>
-        <p>We've successfully processed your document: <strong>${fileName}</strong></p>
+        <p>We've successfully processed your document: <strong>${data.fileName}</strong></p>
         <p>Your simplified result is now available.</p>
-        <a href="${resultUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
+        <a href="${data.resultUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
           View Result
         </a>
         <p style="color: #666; font-size: 14px;">Thanks for using DocEase!</p>
@@ -36,13 +36,13 @@ const emailTemplates = {
     `,
   }),
 
-  processingFailed: (fileName: string, error: string) => ({
+  processingFailed: (data: { fileName: string; error: string }) => ({
     subject: '❌ Processing failed - DocEase',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #dc2626;">Processing Failed</h2>
-        <p>We encountered an issue processing your document: <strong>${fileName}</strong></p>
-        <p style="color: #666;">Error: ${error}</p>
+        <p>We encountered an issue processing your document: <strong>${data.fileName}</strong></p>
+        <p style="color: #666;">Error: ${data.error}</p>
         <p>Please try uploading again or contact support if the issue persists.</p>
         <a href="${process.env.NEXT_PUBLIC_APP_URL}/upload" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
           Try Again
@@ -51,13 +51,13 @@ const emailTemplates = {
     `,
   }),
 
-  usageLimitReached: (userName: string, limit: number) => ({
+  usageLimitReached: (data: { userName: string; limit: number }) => ({
     subject: '⚠️ Usage Limit Reached - DocEase',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #f59e0b;">Usage Limit Reached</h2>
-        <p>Hi ${userName},</p>
-        <p>You've reached your monthly limit of ${limit} documents.</p>
+        <p>Hi ${data.userName},</p>
+        <p>You've reached your monthly limit of ${data.limit} documents.</p>
         <p>Your limit will reset next month, or you can upgrade to Premium for unlimited access.</p>
         <a href="${process.env.NEXT_PUBLIC_APP_URL}/pricing" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
           Upgrade to Premium
@@ -66,12 +66,12 @@ const emailTemplates = {
     `,
   }),
 
-  welcomeEmail: (userName: string) => ({
+  welcomeEmail: (data: { userName: string }) => ({
     subject: '🎉 Welcome to DocEase!',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2563eb;">Welcome to DocEase!</h2>
-        <p>Hi ${userName},</p>
+        <p>Hi ${data.userName},</p>
         <p>Thanks for joining DocEase! You can now simplify complex documents with AI.</p>
         <h3>Getting Started:</h3>
         <ol>
