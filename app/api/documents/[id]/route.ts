@@ -54,3 +54,71 @@ export async function GET(
     );
   }
 }
+
+/**
+ * PATCH /api/documents/[id]
+ * Update document metadata
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Not authenticated', 401)),
+        { status: 401 }
+      );
+    }
+
+    const { id } = params;
+    const updates = await request.json();
+
+    // Validate allowed fields
+    const allowedFields = ['file_name', 'document_type', 'expires_at'];
+    const sanitizedUpdates = Object.keys(updates)
+      .filter(key => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = updates[key];
+        return obj;
+      }, {} as any);
+
+    if (Object.keys(sanitizedUpdates).length === 0) {
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.VALIDATION_ERROR, 'No valid fields to update', 400)),
+        { status: 400 }
+      );
+    }
+
+    // Update document
+    const { data: document, error: updateError } = await supabase
+      .from('documents')
+      .update(sanitizedUpdates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (updateError || !document) {
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found or update failed', 404)),
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      createSuccessResponse(document, 'Document updated successfully')
+    );
+
+  } catch (error) {
+    console.error('Update document error:', error);
+    return NextResponse.json(
+      createErrorResponse(error),
+      { status: error instanceof AppError ? error.statusCode : 500 }
+    );
+  }
+}
