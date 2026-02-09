@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      throw new AppError(ErrorCode.UPLOAD_FAILED, 'Failed to upload file', 500);
+      console.error('Storage upload error:', uploadError);
+      console.error('Error details:', JSON.stringify(uploadError, null, 2));
+      throw new AppError(ErrorCode.UPLOAD_FAILED, `Failed to upload file: ${uploadError.message}`, 500);
     }
 
     // Get public URL
