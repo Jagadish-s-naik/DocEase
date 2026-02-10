@@ -7,6 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Navigation from '@/components/Navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 interface AnalyticsData {
   totalDocuments: number;
@@ -24,6 +27,8 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30'); // days
@@ -65,19 +70,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-              <p className="text-gray-600 mt-1">Track your document processing statistics</p>
-            </div>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Dashboard
+      <Navigation />
+      
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <p className="text-gray-600 mt-1">Track your document processing statistics</p>
+        </div>
             </Link>
           </div>
         </div>

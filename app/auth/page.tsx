@@ -258,6 +258,18 @@ export default function AuthPage() {
                     <span>Continue as Guest (7 days)</span>
                   </button>
                 </div>
+
+                {/* Forgot Password Link */}
+                {mode === 'login' && (
+                  <div className="mt-4 text-center">
+                    <Link 
+                      href="/forgot-password"
+                      className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
+                )}
               </div>
             </>
           )}

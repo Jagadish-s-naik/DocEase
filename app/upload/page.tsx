@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { FileUpload } from '@/components/FileUpload';
+import Navigation from '@/components/Navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -119,21 +120,9 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
-      {/* Header */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Dashboard</span>
-            </Link>
-            <h1 className="text-xl font-bold text-primary-600">Upload Document</h1>
-            <div className="w-32"></div> {/* Spacer for centering */}
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      
       {/* Upload Section */}
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">

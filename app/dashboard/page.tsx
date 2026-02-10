@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import Navigation from '@/components/Navigation';
 import { 
   FileText, 
   Upload, 
@@ -202,36 +203,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-primary-600">DocEase</h1>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/upload"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                Upload Document
-              </Link>
-              <span className="text-sm text-gray-600">
-                {profile?.full_name || user.email}
-              </span>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Navigation />
+      
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -484,7 +459,7 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
