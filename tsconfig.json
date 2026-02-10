@@ -29,5 +29,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "node_modules/@supabase/auth-helpers-nextjs"]
+  "exclude": ["node_modules"]
 }
