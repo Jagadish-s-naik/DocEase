@@ -118,7 +118,7 @@ export function useAuth() {
                     id: session.user.id,
                     full_name: session.user.email?.split('@')[0] || 'User',
                     preferred_language: 'en',
-                  })
+                  } as any)
                   .select()
                   .single();
                 

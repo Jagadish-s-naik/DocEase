@@ -47,7 +47,8 @@ export class OCRService {
           page_number: 1,
           text: `Demo content from ${file.name}`,
           confidence: 0.95,
-          bounding_boxes: []
+          rotation_applied: 0,
+          quality_score: 0.95
         }]
       };
     }

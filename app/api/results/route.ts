@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Get results for each document
     const documentsWithResults = await Promise.all(
-      (documents || []).map(async (doc) => {
+      (documents || []).map(async (doc: any) => {
         const { data: result } = await supabase
           .from('document_results')
           .select('id, document_type, created_at')
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         return {
           ...doc,
           has_result: !!result,
-          result_id: result?.id || null,
+          result_id: (result as any)?.id || null,
         };
       })
     );

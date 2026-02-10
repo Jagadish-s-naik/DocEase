@@ -3,7 +3,8 @@
 // Email, SMS, and In-App Notifications
 // ============================================
 
-import { createClient } from '@/utils/supabase/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import nodemailer from 'nodemailer';
 
 // ============================================
@@ -163,7 +164,7 @@ export async function createInAppNotification(
   type: 'success' | 'error' | 'warning' | 'info' = 'info'
 ) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     const { error } = await supabase.from('notifications').insert({
       user_id: userId,
@@ -188,7 +189,7 @@ export async function createInAppNotification(
 // ============================================
 export async function getUserNotifications(userId: string, limit = 20) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     const { data, error } = await supabase
       .from('notifications')
@@ -211,7 +212,7 @@ export async function getUserNotifications(userId: string, limit = 20) {
 // ============================================
 export async function markNotificationRead(notificationId: string) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     const { error } = await supabase
       .from('notifications')
@@ -239,7 +240,7 @@ export async function updateNotificationPreferences(
   }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     const { error } = await supabase
       .from('profiles')

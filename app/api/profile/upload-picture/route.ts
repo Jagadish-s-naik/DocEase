@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Update profile
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ avatar_url: publicUrl })
+      .update({ avatar_url: publicUrl } as any)
       .eq('id', user.id);
 
     if (updateError) {

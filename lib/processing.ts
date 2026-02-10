@@ -3,7 +3,8 @@
 // Production-ready document processing
 // ============================================
 
-import { createClient } from '@/utils/supabase/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { createWorker } from 'tesseract.js';
 import OpenAI from 'openai';
 import { sendNotification } from './notifications';
@@ -22,7 +23,7 @@ const openai = new OpenAI({
 // MAIN PROCESSING FUNCTION
 // ============================================
 export async function processDocument(documentId: string) {
-  const supabase = createClient();
+  const supabase = createRouteHandlerClient({ cookies });
   
   try {
     addBreadcrumb('Starting document processing', 'processing', { documentId });
@@ -182,7 +183,7 @@ This demonstration shows how the system processes and simplifies complex documen
   try {
     // Real OCR using Tesseract.js
     if (document.document_type === 'image' || document.file_name.match(/\.(jpg|jpeg|png|gif|bmp)$/i)) {
-      const supabase = createClient();
+      const supabase = createRouteHandlerClient({ cookies });
       
       // Download image from storage
       const { data: fileData, error } = await supabase.storage
@@ -216,7 +217,7 @@ This demonstration shows how the system processes and simplifies complex documen
 
     // For text files
     if (document.file_name.match(/\.(txt|md)$/i)) {
-      const supabase = createClient();
+      const supabase = createRouteHandlerClient({ cookies });
       const { data: fileData, error } = await supabase.storage
         .from('documents')
         .download(document.storage_path);

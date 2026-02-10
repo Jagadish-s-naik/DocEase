@@ -120,17 +120,19 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         content += `Risks & Penalties:\n${simplified.sections.risks_penalties}\n\n`;
       }
       
-      if (simplified.sections.key_points && simplified.sections.key_points.length > 0) {
+      // Use bullet_points instead of key_points
+      if (simplified.sections.bullet_points && simplified.sections.bullet_points.length > 0) {
         content += `Key Points:\n`;
-        simplified.sections.key_points.forEach((point: string, i: number) => {
+        simplified.sections.bullet_points.forEach((point: string, i: number) => {
           content += `${i + 1}. ${point}\n`;
         });
         content += `\n`;
       }
       
-      if (simplified.sections.what_to_do_next && simplified.sections.what_to_do_next.length > 0) {
-        content += `What to do next:\n`;
-        simplified.sections.what_to_do_next.forEach((step: string, i: number) => {
+      // Use examples instead of what_to_do_next
+      if (simplified.sections.examples && simplified.sections.examples.length > 0) {
+        content += `Examples:\n`;
+        simplified.sections.examples.forEach((step: string, i: number) => {
           content += `${i + 1}. ${step}\n`;
         });
       }
@@ -138,12 +140,16 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
       // Create blob and download
       const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${document?.file_name.replace(/\.[^/.]+$/, '')}_simplified.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      
+      if (typeof window !== 'undefined' && window.document) {
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = `${document?.file_name.replace(/\.[^/.]+$/, '')}_simplified.txt`;
+        window.document.body.appendChild(a);
+        a.click();
+        window.document.body.removeChild(a);
+      }
+      
       URL.revokeObjectURL(url);
       
       toast.success('Downloaded successfully!');

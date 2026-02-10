@@ -3,7 +3,8 @@
 // Export all results as JSON, CSV, or PDF
 // ============================================
 
-import { createClient } from '@/utils/supabase/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 // ============================================
@@ -11,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // ============================================
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     // Get authenticated user
     const {
@@ -141,7 +142,7 @@ function exportAsCSV(results: any[]) {
 // ============================================
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     // Get authenticated user
     const {

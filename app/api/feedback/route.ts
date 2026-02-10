@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         document_id,
         rating,
         comment: comment || null,
-      })
+      } as any)
       .select()
       .single();
 

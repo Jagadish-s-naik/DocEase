@@ -6,7 +6,7 @@
 // ============================================
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -38,7 +38,7 @@ export default function AdminPanel() {
 
   const checkAdminAccess = async () => {
     try {
-      const supabase = createClient();
+      const supabase = createClientComponentClient();
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -69,7 +69,7 @@ export default function AdminPanel() {
 
   const loadAdminData = async () => {
     try {
-      const supabase = createClient();
+      const supabase = createClientComponentClient();
 
       // Get system stats
       const [usersCount, docsCount, failedCount] = await Promise.all([
@@ -100,7 +100,7 @@ export default function AdminPanel() {
       if (usersData) {
         // Get email from auth.users (requires admin access)
         const usersWithEmail = await Promise.all(
-          usersData.map(async (user) => {
+          usersData.map(async (user: any) => {
             // In production, you'd fetch email from auth.users via admin API
             return {
               ...user,

@@ -3,7 +3,8 @@
 // For handling multiple documents efficiently
 // ============================================
 
-import { createClient } from '@/utils/supabase/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { processDocument } from '@/lib/processing';
 
 // ============================================
@@ -168,7 +169,7 @@ async function processQueue() {
     console.log(`⚙️ Processing document ${item.documentId}`);
 
     // Update document status in database
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
     await supabase
       .from('documents')
       .update({ processing_status: 'queued', queue_priority: item.priority })
@@ -196,7 +197,7 @@ async function processQueue() {
       console.error(`❌ Max retries reached for ${item.documentId}`);
       
       // Update document as failed
-      const supabase = createClient();
+      const supabase = createRouteHandlerClient({ cookies });
       await supabase
         .from('documents')
         .update({ 
@@ -260,7 +261,7 @@ export async function cancelProcessing(documentId: string): Promise<boolean> {
     // Remove from queue if not yet processing
     // (This is simplified - production would need better queue management)
     
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
     await supabase
       .from('documents')
       .update({ 
@@ -281,7 +282,7 @@ export async function cancelProcessing(documentId: string): Promise<boolean> {
 // ============================================
 export async function retryFailedDocuments(userId: string): Promise<number> {
   try {
-    const supabase = createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     // Get all failed documents
     const { data: failedDocs, error } = await supabase

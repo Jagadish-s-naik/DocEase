@@ -59,8 +59,9 @@ export class LLMService {
       console.log('🎭 DEMO MODE: Using mock LLM response');
       return {
         content: 'This is a demo simplified version of your document. In production, this would contain AI-generated simplified content.',
-        usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
-        model: 'demo-model'
+        model: 'demo-model',
+        tokens_used: 100,
+        finish_reason: 'stop'
       };
     }
     
@@ -212,9 +213,9 @@ export class LLMService {
         intent_analysis: {
           action_required: true,
           deadline: '2026-03-01',
-          money_involved: false,
+          money_involved: 0,
           currency: null,
-          penalty_risk: false,
+          penalty_risk: 'none',
           urgency: 'medium',
           summary: 'This appears to be an official government notice requiring your attention.'
         },
@@ -272,13 +273,14 @@ export class LLMService {
           deadlines: 'Important dates and deadlines would be clearly highlighted here.',
           money_matters: 'Any financial implications would be explained in simple terms.',
           risks_penalties: 'Potential consequences and risks would be outlined clearly.',
-          key_points: [
+          simple_explanation: 'Demo mode is active - using mock data. Your document was successfully uploaded and the processing pipeline is working correctly.',
+          bullet_points: [
             'Demo mode is active - using mock data',
             'Your document was successfully uploaded',
             'Processing pipeline is working correctly',
             'Real AI would provide detailed simplification'
           ],
-          what_to_do_next: [
+          examples: [
             'Review this simplified version',
             'Check the translations below',
             'Take any necessary actions',
@@ -297,8 +299,6 @@ export class LLMService {
 
       return {
         simplified_content: simplifiedContent,
-        original_complexity: 0.85,
-        simplified_complexity: 0.15,
         readability_improvement: 0.70,
         model_used: 'demo-model',
         tokens_used: 150,
