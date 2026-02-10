@@ -41,7 +41,7 @@ export class LLMService {
         break;
     }
 
-    if (!this.apiKey && process.env.DEMO_MODE !== 'true') {
+    if (!this.apiKey && process.env.DEMO_MODE !== 'false') {
       throw new AppError(
         ErrorCode.SERVER_ERROR,
         `Missing API key for ${provider}`,
