@@ -24,16 +24,13 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (error) {
-      throw new AppError(ErrorCode.SERVER_ERROR, 'Failed to fetch notifications', 500);
+      return errorResponse('Failed to fetch notifications', 500);
     }
 
-    return NextResponse.json(createSuccessResponse(notifications));
+    return successResponse(notifications);
   } catch (error: any) {
     console.error('Notifications fetch error:', error);
-    return NextResponse.json(
-      createErrorResponse(error),
-      { status: error.statusCode || 500 }
-    );
+    return errorResponse(error.message || 'Server error', 500);
   }
 }
 
@@ -47,10 +44,7 @@ export async function PATCH(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Authentication required', 401)),
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 401);
     }
 
     const body = await request.json();
@@ -65,17 +59,14 @@ export async function PATCH(request: NextRequest) {
         .eq('is_read', false);
 
       if (error) {
-        throw new AppError(ErrorCode.SERVER_ERROR, 'Failed to mark all as read', 500);
+        return errorResponse('Failed to mark all as read', 500);
       }
 
-      return NextResponse.json(createSuccessResponse({ message: 'All notifications marked as read' }));
+      return successResponse({ message: 'All notifications marked as read' });
     }
 
     if (!notification_id) {
-      return NextResponse.json(
-        createErrorResponse(new AppError(ErrorCode.VALIDATION_ERROR, 'notification_id required', 400)),
-        { status: 400 }
-      );
+      return errorResponse('notification_id required', 400);
     }
 
     // Mark specific notification as read
@@ -86,15 +77,12 @@ export async function PATCH(request: NextRequest) {
       .eq('user_id', user.id);
 
     if (error) {
-      throw new AppError(ErrorCode.SERVER_ERROR, 'Failed to mark notification as read', 500);
+      return errorResponse('Failed to mark notification as read', 500);
     }
 
-    return NextResponse.json(createSuccessResponse({ message: 'Notification marked as read' }));
+    return successResponse({ message: 'Notification marked as read' });
   } catch (error: any) {
     console.error('Notification update error:', error);
-    return NextResponse.json(
-      createErrorResponse(error),
-      { status: error.statusCode || 500 }
-    );
+    return errorResponse(error.message || 'Server error', 500);
   }
 }

@@ -98,25 +98,25 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total Documents"
-            value={analytics?.total_documents?.toString() || '0'}
+            value={analytics?.totalDocuments?.toString() || '0'}
             icon="📄"
             color="blue"
           />
           <StatsCard
             title="Completed"
-            value={analytics.completedDocuments}
+            value={analytics?.completedDocuments || 0}
             icon="✅"
             color="green"
           />
           <StatsCard
             title="Failed"
-            value={analytics.failedDocuments}
+            value={analytics?.failedDocuments || 0}
             icon="❌"
             color="red"
           />
           <StatsCard
             title="Success Rate"
-            value={`${analytics.successRate}%`}
+            value={`${analytics?.successRate || 0}%`}
             icon="📊"
             color="purple"
           />
@@ -127,7 +127,7 @@ export default function AnalyticsPage() {
           <h2 className="text-xl font-semibold mb-4">Monthly Usage</h2>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600">
-              {analytics.usageLimit.current} / {analytics.usageLimit.limit} documents
+              {analytics?.usageLimit?.current || 0} / {analytics?.usageLimit?.limit || 0} documents
             </span>
             <span className="text-gray-600">{analytics.usageLimit.percentage}%</span>
           </div>
