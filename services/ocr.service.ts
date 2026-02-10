@@ -41,7 +41,7 @@ export class OCRService {
         confidence: 0.95,
         language: 'en',
         page_count: 1,
-        processing_time: Date.now() - startTime,
+        processing_time_ms: Date.now() - startTime,
         warnings: [],
         pages: [{
           page_number: 1,

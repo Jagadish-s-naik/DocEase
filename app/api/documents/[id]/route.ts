@@ -95,9 +95,9 @@ export async function PATCH(
     }
 
     // Update document
-    const { data: document, error: updateError } = await supabase
+    const { data: document, error: updateError } = await (supabase as any)
       .from('documents')
-      .update(sanitizedUpdates as any)
+      .update(sanitizedUpdates)
       .eq('id', id)
       .eq('user_id', user.id)
       .select()

@@ -285,21 +285,15 @@ export class LLMService {
             'Check the translations below',
             'Take any necessary actions',
             'Configure real API keys for production use'
-          ],
-          contact_info: {
-            department: 'Demo Department',
-            phone: null,
-            email: null,
-            website: null
-          }
+          ]
         },
         confidence_score: 0.95,
-        complexity_reduction: 0.75
+        source_references: [],
+        disclaimers: ['This is demo mode - real processing requires API keys']
       };
 
       return {
         simplified_content: simplifiedContent,
-        readability_improvement: 0.70,
         model_used: 'demo-model',
         tokens_used: 150,
         warnings: []
