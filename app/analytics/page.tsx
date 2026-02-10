@@ -78,12 +78,7 @@ export default function AnalyticsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
           <p className="text-gray-600 mt-1">Track your document processing statistics</p>
         </div>
-            </Link>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Time Range Selector */}
         <div className="mb-6">
           <label className="text-sm font-medium text-gray-700 mr-3">Time Range:</label>
@@ -103,7 +98,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total Documents"
-            value={analytics.totalDocuments}
+            value={analytics?.total_documents?.toString() || '0'}
             icon="📄"
             color="blue"
           />

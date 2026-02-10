@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { createErrorResponse, createSuccessResponse } from '@/lib/api-response';
-import { AppError, ErrorCode } from '@/lib/errors';
+import { errorResponse, successResponse } from '@/lib/api-response';
 
 /**
  * GET /api/notifications
@@ -14,10 +13,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Authentication required', 401)),
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 401);
     }
 
     const { data: notifications, error } = await supabase

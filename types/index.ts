@@ -16,10 +16,15 @@ export interface Profile {
   id: string;
   user_id: string;
   full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  role: 'user' | 'admin';
   preferred_language: SupportedLanguage;
   accessibility_settings: AccessibilitySettings;
   privacy_settings: PrivacySettings;
   auto_delete_days: number | null;
+  documents_processed_this_month: number;
+  monthly_document_limit: number;
   created_at: string;
   updated_at: string;
 }

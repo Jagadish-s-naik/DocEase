@@ -146,6 +146,16 @@ export function useAuth() {
     };
   }, []);
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setAuthState({
+      user: null,
+      profile: null,
+      session: null,
+      loading: false,
+    });
+  };
+
   const signIn = async (email: string, password: string) => {
     console.log('Attempting sign in for:', email);
     try {
@@ -262,6 +272,7 @@ export function useAuth() {
     signInWithOTP,
     signInWithGoogle,
     signOut,
+    logout: signOut,
     createGuestUser,
     isAuthenticated: !!authState.user,
     isGuest: (authState.profile as any)?.is_guest || false,
