@@ -66,31 +66,28 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, number>) || {};
 
+    // Format for frontend (matching AnalyticsData interface)
     const analytics = {
-      overview: {
-        totalDocuments,
-        completedDocuments,
-        failedDocuments,
-        processingDocuments,
-        successRate: totalDocuments > 0 ? ((completedDocuments / totalDocuments) * 100).toFixed(2) : 0,
-      },
-      usage: {
-        documentsProcessed: (usageLimits as any)?.documents_processed || 0,
-        monthlyLimit: (usageLimits as any)?.monthly_limit || 3,
-        remainingQuota: Math.max(0, ((usageLimits as any)?.monthly_limit || 3) - ((usageLimits as any)?.documents_processed || 0)),
-      },
-      documentTypes,
-      dailyUsage,
-      period: {
-        days,
-        startDate: startDate.toISOString(),
-        endDate: new Date().toISOString(),
+      totalDocuments,
+      completedDocuments,
+      failedDocuments,
+      processingDocuments,
+      successRate: totalDocuments > 0 ? parseFloat(((completedDocuments / totalDocuments) * 100).toFixed(2)) : 0,
+      documentTypes: Object.entries(documentTypes).map(([type, count]) => ({ type, count })),
+      dailyUsage: Object.entries(dailyUsage).map(([date, count]) => ({ date, count })),
+      usageLimit: {
+        current: (usageLimits as any)?.documents_processed || 0,
+        limit: (usageLimits as any)?.monthly_limit || 3,
+        percentage: ((usageLimits as any)?.monthly_limit || 3) > 0 
+          ? (((usageLimits as any)?.documents_processed || 0) / ((usageLimits as any)?.monthly_limit || 3)) * 100
+          : 0,
       },
     };
 
-    return NextResponse.json(
-      createSuccessResponse(analytics, 'Analytics retrieved successfully')
-    );
+    return NextResponse.json({
+      success: true,
+      analytics,
+    });
 
   } catch (error) {
     console.error('Analytics error:', error);

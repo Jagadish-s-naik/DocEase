@@ -69,47 +69,29 @@ export default function AdminPanel() {
 
   const loadAdminData = async () => {
     try {
-      const supabase = createClientComponentClient();
-
-      // Get system stats
-      const [usersCount, docsCount, failedCount] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('documents').select('id', { count: 'exact', head: true }),
-        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('processing_status', 'failed'),
+      // Use the new admin APIs
+      const [statsResponse, usersResponse] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/users'),
       ]);
 
-      setStats({
-        totalUsers: usersCount.count || 0,
-        totalDocuments: docsCount.count || 0,
-        processingQueue: 0, // Would come from queue system
-        failedDocuments: failedCount.count || 0,
-      });
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        if (statsData.success) {
+          setStats({
+            totalUsers: statsData.data.totalUsers,
+            totalDocuments: statsData.data.totalDocuments,
+            processingQueue: statsData.data.processingQueue,
+            failedDocuments: statsData.data.failedDocuments,
+          });
+        }
+      }
 
-      // Get users list
-      const { data: usersData } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          role,
-          created_at
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (usersData) {
-        // Get email from auth.users (requires admin access)
-        const usersWithEmail = await Promise.all(
-          usersData.map(async (user: any) => {
-            // In production, you'd fetch email from auth.users via admin API
-            return {
-              ...user,
-              email: 'user@example.com', // Placeholder
-              documents_count: 0, // Placeholder
-            };
-          })
-        );
-        setUsers(usersWithEmail);
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json();
+        if (usersData.success && usersData.data.users) {
+          setUsers(usersData.data.users);
+        }
       }
     } catch (error) {
       console.error('Failed to load admin data:', error);

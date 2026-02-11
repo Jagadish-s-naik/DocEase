@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { FILE_LIMITS, VALIDATION_MESSAGES } from '@/config/constants';
 import { generateUniqueFilename, createErrorResponse, createSuccessResponse } from '@/utils/helpers';
 import { AppError, ErrorCode, UploadStatus } from '@/types';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,24 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const rateLimit = checkRateLimit(`upload:${ip}`, RATE_LIMITS.upload);
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.RATE_LIMIT, 'Too many upload requests. Please try again later.', 429)),
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': RATE_LIMITS.upload.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+          }
+        }
+      );
+    }
+    
     const supabase = createServerClient();
     
     // Check authentication

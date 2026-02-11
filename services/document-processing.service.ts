@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { OCRService } from './ocr.service';
 import { LLMService } from './llm.service';
+import { sendNotification } from '@/lib/notifications';
 import {
   Document,
   DocumentResult,
@@ -118,11 +119,29 @@ export class DocumentProcessingService {
       // Step 9: Increment usage
       await this.incrementUsage(userId);
 
+      // Step 10: Send success notification
+      try {
+        await this.sendSuccessNotification(userId, document.file_name, result.id);
+      } catch (notifError) {
+        console.warn('Failed to send notification:', notifError);
+        // Don't fail the whole process if notification fails
+      }
+
       return result;
 
     } catch (error) {
       // Mark as failed
       await this.updateProcessingStatus(documentId, ProcessingStatus.FAILED);
+      
+      // Send failure notification
+      try {
+        const document = await this.getDocument(documentId, userId).catch(() => null);
+        if (document) {
+          await this.sendFailureNotification(userId, document.file_name, error instanceof Error ? error.message : 'Unknown error');
+        }
+      } catch (notifError) {
+        console.warn('Failed to send failure notification:', notifError);
+      }
       
       throw new AppError(
         ErrorCode.SERVER_ERROR,
@@ -337,6 +356,83 @@ export class DocumentProcessingService {
       .delete()
       .eq('id', documentId)
       .eq('user_id', userId);
+  }
+
+  /**
+   * Send success notification to user
+   */
+  private async sendSuccessNotification(userId: string, fileName: string, resultId: string) {
+    const supabase = createServerClient();
+    
+    // Get user profile for email
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .single();
+
+    // Get user email from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return;
+
+    const resultUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/results/${resultId}`;
+
+    // Send in-app notification
+    await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'success',
+        title: 'Document processed successfully',
+        message: `Your document "${fileName}" has been processed and is ready to view.`,
+        link: resultUrl,
+        read: false,
+      } as any);
+
+    // Send email notification (if configured)
+    await sendNotification({
+      userId,
+      email: user.email,
+      title: 'Document processed successfully',
+      message: `Your document "${fileName}" has been processed and is ready to view.`,
+      templateName: 'processingComplete',
+      templateData: { fileName, resultUrl },
+      channels: ['in_app'],
+    }).catch((err: any) => console.warn('Email notification failed:', err));
+  }
+
+  /**
+   * Send failure notification to user
+   */
+  private async sendFailureNotification(userId: string, fileName: string, error: string) {
+    const supabase = createServerClient();
+    
+    // Get user email from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return;
+
+    // Send in-app notification
+    await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'error',
+        title: 'Document processing failed',
+        message: `Failed to process "${fileName}": ${error}`,
+        link: '/upload',
+        read: false,
+      } as any);
+
+    // Send email notification (if configured)
+    await sendNotification({
+      userId,
+      email: user.email,
+      title: 'Document processing failed',
+      message: `Failed to process "${fileName}": ${error}`,
+      templateName: 'processingFailed',
+      templateData: { fileName, error },
+      channels: ['in_app'],
+    }).catch((err: any) => console.warn('Email notification failed:', err));
   }
 }
 

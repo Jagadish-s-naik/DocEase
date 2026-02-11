@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { getProcessingService } from '@/services/document-processing.service';
 import { createErrorResponse, createSuccessResponse } from '@/utils/helpers';
 import { AppError, ErrorCode, SupportedLanguage } from '@/types';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,24 @@ export const maxDuration = 60; // Max 60 seconds for processing
 export async function POST(request: NextRequest) {
   console.log('🚀 Processing API called');
   try {
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const rateLimit = checkRateLimit(`process:${ip}`, RATE_LIMITS.process);
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.RATE_LIMIT, 'Too many processing requests. Please try again later.', 429)),
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': RATE_LIMITS.process.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+          }
+        }
+      );
+    }
+    
     const supabase = createServerClient();
     
     // Check authentication
