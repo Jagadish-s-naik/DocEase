@@ -62,7 +62,13 @@ export default function UploadPage() {
         throw new Error(error.error || 'Upload failed');
       }
 
-      const { documentId } = await uploadResponse.json();
+      const uploadResult = await uploadResponse.json();
+      const documentId = uploadResult.data?.documentId;
+      
+      if (!documentId) {
+        throw new Error('Upload failed: No document ID returned');
+      }
+      
       toast.success('File uploaded successfully!');
 
       // Start processing
