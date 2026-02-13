@@ -38,11 +38,14 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.error('[AUTH] Upload request without authentication');
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Not authenticated', 401)),
         { status: 401 }
       );
     }
+    
+    console.log(`[UPLOAD] User ${user.id} (${user.email}) uploading document`);  
 
     // Parse form data
     const formData = await request.formData();

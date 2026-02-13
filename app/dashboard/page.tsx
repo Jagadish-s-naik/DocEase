@@ -57,14 +57,15 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     if (!user) return;
 
-    console.log('Fetching dashboard data for user:', user.id);
+    console.log(`[DASHBOARD] Fetching data for user: ${user.id} (${user.email})`);
+    console.log(`[DASHBOARD] Session valid: ${user && 'yes' || 'no'}`);
 
     try {
-      // Fetch documents
+      // Fetch documents - CRITICAL: Filter by user_id only
       const { data: docsData, error: docsError } = await supabase
         .from('documents')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id)  // CRITICAL: Only this user's documents
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -73,7 +74,16 @@ export default function DashboardPage() {
         throw docsError;
       }
       
-      console.log('Documents fetched:', docsData?.length || 0);
+      console.log(`[DASHBOARD] Retrieved ${docsData?.length || 0} documents for user ${user.id}`);
+      if (docsData && docsData.length > 0) {
+        console.log(`[DASHBOARD] Document owners: ${docsData.map((d: any) => d.user_id).join(', ')}`);
+        // SECURITY CHECK: Verify all documents belong to current user
+        const foreignDocs = docsData.filter((d: any) => d.user_id !== user.id);
+        if (foreignDocs.length > 0) {
+          console.error(`[SECURITY] CRITICAL: Found ${foreignDocs.length} documents not belonging to user ${user.id}!`);
+          console.error('[SECURITY] Foreign documents:', foreignDocs.map((d: any) => ({ id: d.id, user_id: d.user_id })));
+        }
+      }
       setDocuments(docsData || []);
 
       // Fetch results for completed documents
