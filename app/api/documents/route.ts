@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           return {
             ...doc,
             has_result: !!result,
-            result_id: result?.id || null,
+            result_id: (result as any)?.id || null,
           };
         }
         return {
