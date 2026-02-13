@@ -107,8 +107,13 @@ export async function POST(request: NextRequest) {
     
     // Process asynchronously (non-blocking)
     processingService.processDocument(documentId, user.id, targetLanguages)
+      .then((result) => {
+        console.log('✅ Processing completed successfully:', documentId);
+      })
       .catch(error => {
-        console.error('Processing failed:', error);
+        console.error('❌ Processing failed for document:', documentId);
+        console.error('Error details:', error);
+        console.error('Stack:', error.stack);
         // Log error to monitoring service
       });
 
