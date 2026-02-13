@@ -32,7 +32,7 @@ export async function GET(
     console.log(`[SECURITY] User ${user.id} requesting document ${id}`);
 
     // Get document - CRITICAL: Must verify user_id match
-    const { data: document, error: docError } = await supabase
+    const { data: fetchedDocument, error: docError } = await supabase
       .from('documents')
       .select('*')
       .eq('id', id)
@@ -40,22 +40,22 @@ export async function GET(
       .single();
     
     // CRITICAL: Verify the document's user_id matches the authenticated user
-    if (document && document.user_id !== user.id) {
-      console.error(`[SECURITY] UNAUTHORIZED ACCESS ATTEMPT: User ${user.id} tried to access document ${id} owned by ${document.user_id}`);
+    if (fetchedDocument && (fetchedDocument as any).user_id !== user.id) {
+      console.error(`[SECURITY] UNAUTHORIZED ACCESS ATTEMPT: User ${user.id} tried to access document ${id} owned by ${(fetchedDocument as any).user_id}`);
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Document not found', 404)),
         { status: 404 }
       );
     }
 
-    if (docError || !document) {
+    if (docError || !fetchedDocument) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found', 404)),
         { status: 404 }
       );
     }
 
-    return NextResponse.json(document);
+    return NextResponse.json(fetchedDocument);
 
   } catch (error) {
     console.error('Get document error:', error);
@@ -92,13 +92,13 @@ export async function PATCH(
     console.log(`[SECURITY] User ${user.id} updating document ${id}`);
 
     // First verify document ownership
-    const { data: document, error: docError } = await supabase
+    const { data: ownershipDocument, error: docError } = await supabase
       .from('documents')
       .select('user_id')
       .eq('id', id)
       .single();
     
-    if (docError || !document || (document as any).user_id !== user.id) {
+    if (docError || !ownershipDocument || (ownershipDocument as any).user_id !== user.id) {
       console.error(`[SECURITY] UNAUTHORIZED UPDATE ATTEMPT: User ${user.id} tried to update document ${id}`);
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Document not found', 404)),
@@ -123,7 +123,7 @@ export async function PATCH(
     }
 
     // Update document
-    const { data: document, error: updateError } = await (supabase as any)
+    const { data: updatedDocument, error: updateError } = await (supabase as any)
       .from('documents')
       .update(sanitizedUpdates)
       .eq('id', id)
@@ -131,7 +131,7 @@ export async function PATCH(
       .select()
       .single();
 
-    if (updateError || !document) {
+    if (updateError || !updatedDocument) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found or update failed', 404)),
         { status: 404 }
@@ -139,7 +139,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(
-      createSuccessResponse(document, 'Document updated successfully')
+      createSuccessResponse(updatedDocument, 'Document updated successfully')
     );
 
   } catch (error) {
@@ -176,13 +176,13 @@ export async function DELETE(
     console.log(`[SECURITY] User ${user.id} attempting to delete document ${id}`);
 
     // First verify document ownership
-    const { data: document, error: docError } = await supabase
+    const { data: ownershipDocument, error: docError } = await supabase
       .from('documents')
       .select('user_id, storage_path')
       .eq('id', id)
       .single();
 
-    if (docError || !document) {
+    if (docError || !ownershipDocument) {
       console.error(`[SECURITY] Delete failed - document not found: ${id}`);
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.NOT_FOUND, 'Document not found', 404)),
@@ -191,8 +191,8 @@ export async function DELETE(
     }
 
     // CRITICAL: Verify ownership
-    if ((document as any).user_id !== user.id) {
-      console.error(`[SECURITY] UNAUTHORIZED DELETE ATTEMPT: User ${user.id} tried to delete document ${id} owned by ${(document as any).user_id}`);
+    if ((ownershipDocument as any).user_id !== user.id) {
+      console.error(`[SECURITY] UNAUTHORIZED DELETE ATTEMPT: User ${user.id} tried to delete document ${id} owned by ${(ownershipDocument as any).user_id}`);
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.UNAUTHORIZED, 'Cannot delete document', 403)),
         { status: 403 }
@@ -200,10 +200,10 @@ export async function DELETE(
     }
 
     // Delete from storage
-    if ((document as any).storage_path) {
+    if ((ownershipDocument as any).storage_path) {
       await supabase.storage
         .from('documents')
-        .remove([(document as any).storage_path]);
+        .remove([(ownershipDocument as any).storage_path]);
     }
 
     // Delete document record
