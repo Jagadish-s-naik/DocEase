@@ -203,7 +203,7 @@ export const OCR_CONFIG = {
 
 export const LLM_CONFIG = {
   PROVIDER: 'openai',
-  MODEL: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+  MODEL: process.env.OPENAI_MODEL || 'gpt-4o',
   MAX_TOKENS: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
   TEMPERATURE: 0.3, // Lower for more consistent output
   TIMEOUT_MS: 30000, // 30 seconds

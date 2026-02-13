@@ -303,7 +303,7 @@ The actual implementation uses advanced language models to:
   try {
     // Real LLM simplification using OpenAI
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
       messages: [
         {
           role: 'system',

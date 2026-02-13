@@ -136,8 +136,11 @@ export class OCRService {
         ? await this.preprocessImage(file)
         : file;
 
-      // Run Tesseract OCR
-      const result = await Tesseract.recognize(imageData, this.config.language, {
+      // Create Tesseract worker with proper configuration for Next.js
+      const worker = await Tesseract.createWorker(this.config.language, undefined, {
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
         logger: (m) => {
           // Optional: Log progress
           if (m.status === 'recognizing text') {
@@ -145,6 +148,10 @@ export class OCRService {
           }
         },
       });
+
+      // Run OCR
+      const result = await worker.recognize(imageData);
+      await worker.terminate();
 
       const confidence = result.data.confidence;
       const text = result.data.text.trim();

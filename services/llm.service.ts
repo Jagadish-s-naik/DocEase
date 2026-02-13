@@ -20,9 +20,9 @@ import { LLM_CONFIG } from '@/config/constants';
 export class LLMService {
   private apiKey: string;
   private model: string;
-  private provider: 'openai' | 'anthropic' | 'google';
+  private provider: 'openai' | 'anthropic' | 'google' | 'groq';
 
-  constructor(provider: 'openai' | 'anthropic' | 'google' = 'openai') {
+  constructor(provider: 'openai' | 'anthropic' | 'google' | 'groq' = 'groq') {
     this.provider = provider;
     this.model = LLM_CONFIG.MODEL;
     
@@ -38,6 +38,10 @@ export class LLMService {
       case 'google':
         this.apiKey = process.env.GOOGLE_AI_API_KEY || '';
         this.model = process.env.GOOGLE_AI_MODEL || 'gemini-pro';
+        break;
+      case 'groq':
+        this.apiKey = process.env.GROQ_API_KEY || '';
+        this.model = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
         break;
     }
 
@@ -73,6 +77,8 @@ export class LLMService {
           return await this.anthropicComplete(prompt, systemPrompt);
         case 'google':
           return await this.googleAIComplete(prompt, systemPrompt);
+        case 'groq':
+          return await this.groqComplete(prompt, systemPrompt);
         default:
           throw new Error('Unsupported LLM provider');
       }
@@ -197,6 +203,43 @@ export class LLMService {
       model: this.model,
       tokens_used: data.usageMetadata?.totalTokenCount || 0,
       finish_reason: candidate.finishReason,
+    };
+  }
+
+  /**
+   * Groq completion (Free, Fast AI)
+   */
+  private async groqComplete(prompt: string, systemPrompt?: string): Promise<LLMResponse> {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: LLM_CONFIG.MAX_TOKENS,
+        temperature: LLM_CONFIG.TEMPERATURE,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Groq API request failed');
+    }
+
+    const data = await response.json();
+    const choice = data.choices[0];
+
+    return {
+      content: choice.message.content,
+      model: data.model,
+      tokens_used: data.usage.total_tokens,
+      finish_reason: choice.finish_reason,
     };
   }
 
@@ -541,6 +584,6 @@ Respond with JSON containing the translated sections.`;
 /**
  * Get LLM service instance
  */
-export function getLLMService(provider?: 'openai' | 'anthropic' | 'google'): LLMService {
+export function getLLMService(provider?: 'openai' | 'anthropic' | 'google' | 'groq'): LLMService {
   return new LLMService(provider);
 }
