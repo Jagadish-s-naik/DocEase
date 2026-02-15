@@ -74,11 +74,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check usage limit
-    const { data: canProcess, error: limitError } = await supabase
-      .rpc('check_usage_limit', { p_user_id: user.id } as any);
+    // Check usage limit (compute from processed results for current month)
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .limit(1);
 
-    if (limitError || !canProcess) {
+    const isPaid = Array.isArray(subscription) && subscription.length > 0;
+    const limit = isPaid ? 999999 : 3;
+
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+    const { count: usedCount, error: countError } = await supabase
+      .from('document_results')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', monthStart.toISOString())
+      .lt('created_at', nextMonth.toISOString());
+
+    if (countError) {
+      console.error('Usage count error:', countError);
+      return NextResponse.json(
+        createErrorResponse(new AppError(ErrorCode.SERVER_ERROR, 'Failed to check usage limits', 500)),
+        { status: 500 }
+      );
+    }
+
+    const used = usedCount || 0;
+    if (used >= limit) {
       return NextResponse.json(
         createErrorResponse(new AppError(ErrorCode.LIMIT_EXCEEDED, VALIDATION_MESSAGES.LIMIT_EXCEEDED, 429)),
         { status: 429 }
@@ -179,26 +206,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current usage
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const { data: usage } = await supabase
-      .from('usage_limits')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('month', currentMonth)
-      .single();
-
     // Get subscription status
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('id')
       .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+      .in('status', ['active', 'trialing'])
+      .limit(1);
 
-    const isPaid = !!subscription;
+    const isPaid = Array.isArray(subscription) && subscription.length > 0;
     const limit = isPaid ? 999999 : 3;
-    const used = (usage as any)?.documents_processed || 0;
+
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+    const { count: usedCount } = await supabase
+      .from('document_results')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', monthStart.toISOString())
+      .lt('created_at', nextMonth.toISOString());
+
+    const used = usedCount || 0;
     const remaining = Math.max(0, limit - used);
 
     return NextResponse.json(

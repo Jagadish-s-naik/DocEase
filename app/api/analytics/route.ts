@@ -36,12 +36,29 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .gte('created_at', startDate.toISOString());
 
-    // Get usage limits
-    const { data: usageLimits } = await supabase
-      .from('usage_limits')
-      .select('*')
+    // Get subscription status
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('id')
       .eq('user_id', user.id)
-      .single();
+      .in('status', ['active', 'trialing'])
+      .limit(1);
+
+    const isPaid = Array.isArray(subscription) && subscription.length > 0;
+    const limit = isPaid ? 999999 : 3;
+
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+    const { count: usedCount } = await supabase
+      .from('document_results')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', monthStart.toISOString())
+      .lt('created_at', nextMonth.toISOString());
+
+    const used = usedCount || 0;
 
     // Calculate statistics
     const totalDocuments = documents?.length || 0;
@@ -76,11 +93,9 @@ export async function GET(request: NextRequest) {
       documentTypes: Object.entries(documentTypes).map(([type, count]) => ({ type, count })),
       dailyUsage: Object.entries(dailyUsage).map(([date, count]) => ({ date, count })),
       usageLimit: {
-        current: (usageLimits as any)?.documents_processed || 0,
-        limit: (usageLimits as any)?.monthly_limit || 3,
-        percentage: ((usageLimits as any)?.monthly_limit || 3) > 0 
-          ? (((usageLimits as any)?.documents_processed || 0) / ((usageLimits as any)?.monthly_limit || 3)) * 100
-          : 0,
+        current: used,
+        limit,
+        percentage: limit > 0 ? (used / limit) * 100 : 0,
       },
     };
 

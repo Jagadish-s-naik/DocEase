@@ -115,29 +115,15 @@ export default function DashboardPage() {
       setStats({ total, pending, completed, failed });
 
       // Fetch usage stats
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const { data: usageData, error: usageError } = await supabase
-        .from('usage_limits')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .single();
-
-      if (usageData) {
+      const usageResponse = await fetch('/api/usage');
+      if (usageResponse.ok) {
+        const usagePayload = await usageResponse.json();
+        const usageData = usagePayload?.data;
         setUsageStats({
-          used: (usageData as any).documents_processed || 0,
-          limit: (usageData as any).limit_value || 3,
+          used: usageData?.used || 0,
+          limit: usageData?.limit || 3,
         });
       } else {
-        // Create default usage limit for new users
-        const usageLimitsTable: any = supabase.from('usage_limits');
-        await usageLimitsTable.insert({
-          user_id: user.id,
-          month: currentMonth,
-          plan_type: 'free',
-          limit_value: 3,
-          documents_processed: 0,
-        });
         setUsageStats({ used: 0, limit: 3 });
       }
 
