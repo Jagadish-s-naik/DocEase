@@ -1,4 +1,5 @@
 import Tesseract from 'tesseract.js';
+import pdfParse from 'pdf-parse';
 import {
   OCRConfig,
   OCRResult,
@@ -83,31 +84,57 @@ export class OCRService {
   private async extractFromPDF(file: File): Promise<OCRResult> {
     const startTime = Date.now();
     const pages: OCRPageResult[] = [];
+    let pageCount = 1;
     let totalText = '';
     let totalConfidence = 0;
     let warnings: string[] = [];
 
     try {
-      // Convert PDF to images (would need pdf.js or similar)
-      // For now, we'll use a simplified approach
+      // Try to extract embedded text first (fast and accurate for digital PDFs)
       const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: file.type });
-      
-      // TODO: Implement PDF to image conversion using pdf.js
-      // For production, use: import * as pdfjsLib from 'pdfjs-dist';
-      
-      // Placeholder: Treat first page as image
-      const imageResult = await this.extractFromImage(file);
-      pages.push(imageResult.pages[0]);
-      totalText = imageResult.text;
-      totalConfidence = imageResult.confidence;
-      
-      if (imageResult.warnings.length > 0) {
-        warnings = [...warnings, ...imageResult.warnings];
+      const pdfBuffer = Buffer.from(arrayBuffer);
+      const pdfData = await pdfParse(pdfBuffer);
+
+      totalText = (pdfData.text || '').trim();
+      pageCount = pdfData.numpages || 1;
+
+      if (totalText.length > 20) {
+        totalConfidence = 0.98;
+        pages.push({
+          page_number: 1,
+          text: totalText,
+          confidence: totalConfidence,
+          rotation_applied: 0,
+          quality_score: this.calculateQualityScore(totalConfidence, totalText.length),
+        });
+      } else {
+        warnings.push('Low text content detected in PDF. Attempting OCR fallback on first page.');
+
+        // Fallback: Attempt OCR on the PDF file (may be low quality for scanned PDFs)
+        const imageResult = await this.extractFromImage(file);
+        pages.push(imageResult.pages[0]);
+        totalText = imageResult.text;
+        totalConfidence = imageResult.confidence;
+
+        if (imageResult.warnings.length > 0) {
+          warnings = [...warnings, ...imageResult.warnings];
+        }
       }
 
     } catch (error) {
       warnings.push(`PDF processing error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      try {
+        const imageResult = await this.extractFromImage(file);
+        pages.push(imageResult.pages[0]);
+        totalText = imageResult.text;
+        totalConfidence = imageResult.confidence;
+        pageCount = imageResult.page_count || pageCount;
+        if (imageResult.warnings.length > 0) {
+          warnings = [...warnings, ...imageResult.warnings];
+        }
+      } catch (fallbackError) {
+        warnings.push(`PDF OCR fallback failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown'}`);
+      }
     }
 
     const processingTime = Date.now() - startTime;
@@ -116,7 +143,7 @@ export class OCRService {
       text: totalText,
       confidence: totalConfidence,
       language: this.detectLanguage(totalText),
-      page_count: pages.length,
+      page_count: pageCount,
       processing_time_ms: processingTime,
       warnings,
       pages,
