@@ -1,6 +1,5 @@
 import Tesseract from 'tesseract.js';
 import pdfParse from 'pdf-parse';
-import { createCanvas } from '@napi-rs/canvas';
 import {
   OCRConfig,
   OCRResult,
@@ -109,30 +108,29 @@ export class OCRService {
           quality_score: this.calculateQualityScore(totalConfidence, totalText.length),
         });
       } else {
-        warnings.push('Low text content detected in PDF. Attempting OCR on rendered pages.');
+        warnings.push('Low text content detected in PDF. Attempting OCR fallback.');
 
-        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 5);
-        pages.push(...ocrResult.pages);
-        totalText = ocrResult.text;
-        totalConfidence = ocrResult.confidence;
-        pageCount = ocrResult.page_count;
-        if (ocrResult.warnings.length > 0) {
-          warnings = [...warnings, ...ocrResult.warnings];
+        // Fallback: attempt OCR directly on the PDF binary (best-effort)
+        const imageResult = await this.extractFromImage(file);
+        pages.push(imageResult.pages[0]);
+        totalText = imageResult.text;
+        totalConfidence = imageResult.confidence;
+        pageCount = imageResult.page_count || pageCount;
+        if (imageResult.warnings.length > 0) {
+          warnings = [...warnings, ...imageResult.warnings];
         }
       }
 
     } catch (error) {
       warnings.push(`PDF processing error: ${error instanceof Error ? error.message : 'Unknown'}`);
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfBuffer = Buffer.from(arrayBuffer);
-        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 5);
-        pages.push(...ocrResult.pages);
-        totalText = ocrResult.text;
-        totalConfidence = ocrResult.confidence;
-        pageCount = ocrResult.page_count;
-        if (ocrResult.warnings.length > 0) {
-          warnings = [...warnings, ...ocrResult.warnings];
+        const imageResult = await this.extractFromImage(file);
+        pages.push(imageResult.pages[0]);
+        totalText = imageResult.text;
+        totalConfidence = imageResult.confidence;
+        pageCount = imageResult.page_count || pageCount;
+        if (imageResult.warnings.length > 0) {
+          warnings = [...warnings, ...imageResult.warnings];
         }
       } catch (fallbackError) {
         warnings.push(`PDF OCR fallback failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown'}`);
@@ -152,65 +150,6 @@ export class OCRService {
     };
   }
 
-  private async extractFromPdfPagesWithOcr(
-    pdfBuffer: Buffer,
-    maxPages: number
-  ): Promise<OCRResult> {
-    const startTime = Date.now();
-    const pages: OCRPageResult[] = [];
-    const warnings: string[] = [];
-
-    const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer, disableWorker: true });
-    const pdfDoc = await loadingTask.promise;
-
-    const pageCount = pdfDoc.numPages || 1;
-    const pagesToProcess = Math.min(pageCount, maxPages);
-
-    let combinedText = '';
-    let confidenceSum = 0;
-
-    const renderScale = 2.5;
-
-    for (let pageNumber = 1; pageNumber <= pagesToProcess; pageNumber += 1) {
-      const page = await pdfDoc.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: renderScale });
-      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-      const context = canvas.getContext('2d');
-
-      await page.render({ canvasContext: context as any, viewport }).promise;
-
-      const imageBuffer = canvas.toBuffer('image/png');
-      const imageFile = new File([new Uint8Array(imageBuffer)], `page-${pageNumber}.png`, { type: 'image/png' });
-
-      const pageOcr = await this.extractFromImage(imageFile);
-      const pageResult = pageOcr.pages[0];
-
-      pages.push({
-        ...pageResult,
-        page_number: pageNumber,
-      });
-
-      combinedText += `${pageResult.text}\n\n`;
-      confidenceSum += pageResult.confidence;
-
-      if (pageOcr.warnings.length > 0) {
-        warnings.push(...pageOcr.warnings);
-      }
-    }
-
-    const avgConfidence = pages.length > 0 ? confidenceSum / pages.length : 0;
-
-    return {
-      text: combinedText.trim(),
-      confidence: avgConfidence,
-      language: this.detectLanguage(combinedText),
-      page_count: pageCount,
-      processing_time_ms: Date.now() - startTime,
-      warnings,
-      pages,
-    };
-  }
 
   /**
    * Extract text from image file

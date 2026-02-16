@@ -91,6 +91,24 @@ export class LLMService {
     }
   }
 
+  private async parseErrorResponse(response: Response): Promise<string> {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        const error = await response.json();
+        return error.error?.message || JSON.stringify(error);
+      } catch {
+        // Fall through to text
+      }
+    }
+
+    const text = await response.text();
+    if (text.trim().startsWith('<!DOCTYPE')) {
+      return `HTML error response (status ${response.status})`;
+    }
+    return text || `Request failed with status ${response.status}`;
+  }
+
   /**
    * OpenAI completion
    */
@@ -113,8 +131,8 @@ export class LLMService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API request failed');
+      const errorMessage = await this.parseErrorResponse(response);
+      throw new Error(errorMessage || 'OpenAI API request failed');
     }
 
     const data = await response.json();
@@ -151,8 +169,8 @@ export class LLMService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Anthropic API request failed');
+      const errorMessage = await this.parseErrorResponse(response);
+      throw new Error(errorMessage || 'Anthropic API request failed');
     }
 
     const data = await response.json();
@@ -191,8 +209,8 @@ export class LLMService {
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Google AI API request failed');
+      const errorMessage = await this.parseErrorResponse(response);
+      throw new Error(errorMessage || 'Google AI API request failed');
     }
 
     const data = await response.json();
@@ -228,8 +246,8 @@ export class LLMService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Groq API request failed');
+      const errorMessage = await this.parseErrorResponse(response);
+      throw new Error(errorMessage || 'Groq API request failed');
     }
 
     const data = await response.json();
