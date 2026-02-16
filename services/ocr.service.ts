@@ -109,48 +109,105 @@ export class OCRService {
           quality_score: this.calculateQualityScore(totalConfidence, totalText.length),
         });
       } else {
-        warnings.push('Low text content detected in PDF. Attempting OCR fallback on first page.');
+        warnings.push('Low text content detected in PDF. Attempting OCR on rendered pages.');
 
-        // Fallback: Attempt OCR on the PDF file (may be low quality for scanned PDFs)
-        const imageResult = await this.extractFromImage(file);
-        pages.push(imageResult.pages[0]);
-        totalText = imageResult.text;
-        totalConfidence = imageResult.confidence;
-
-        if (imageResult.warnings.length > 0) {
-          warnings = [...warnings, ...imageResult.warnings];
+        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 3);
+        pages.push(...ocrResult.pages);
+        totalText = ocrResult.text;
+        totalConfidence = ocrResult.confidence;
+        pageCount = ocrResult.page_count;
+        if (ocrResult.warnings.length > 0) {
+          warnings = [...warnings, ...ocrResult.warnings];
         }
       }
 
     } catch (error) {
       warnings.push(`PDF processing error: ${error instanceof Error ? error.message : 'Unknown'}`);
       try {
-        const imageResult = await this.extractFromImage(file);
-            warnings.push('Low text content detected in PDF. Attempting OCR on rendered pages.');
-        totalText = imageResult.text;
-            const ocrResult = await this.extractFromPdfPagesWithOcr(file, pdfBuffer, 3);
-            pages.push(...ocrResult.pages);
-            totalText = ocrResult.text;
-            totalConfidence = ocrResult.confidence;
-            pageCount = ocrResult.page_count;
-            if (ocrResult.warnings.length > 0) {
-              warnings = [...warnings, ...ocrResult.warnings];
-            }
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfBuffer = Buffer.from(arrayBuffer);
+        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 3);
+        pages.push(...ocrResult.pages);
+        totalText = ocrResult.text;
+        totalConfidence = ocrResult.confidence;
+        pageCount = ocrResult.page_count;
+        if (ocrResult.warnings.length > 0) {
+          warnings = [...warnings, ...ocrResult.warnings];
+        }
+      } catch (fallbackError) {
+        warnings.push(`PDF OCR fallback failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown'}`);
+      }
     }
 
     const processingTime = Date.now() - startTime;
 
     return {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfBuffer = Buffer.from(arrayBuffer);
-            const ocrResult = await this.extractFromPdfPagesWithOcr(file, pdfBuffer, 3);
-            pages.push(...ocrResult.pages);
-            totalText = ocrResult.text;
-            totalConfidence = ocrResult.confidence;
-            pageCount = ocrResult.page_count;
-            if (ocrResult.warnings.length > 0) {
-              warnings = [...warnings, ...ocrResult.warnings];
-            }
+      text: totalText,
+      confidence: totalConfidence,
+      language: this.detectLanguage(totalText),
+      page_count: pageCount,
+      processing_time_ms: processingTime,
+      warnings,
+      pages,
+    };
+  }
+
+  private async extractFromPdfPagesWithOcr(
+    pdfBuffer: Buffer,
+    maxPages: number
+  ): Promise<OCRResult> {
+    const startTime = Date.now();
+    const pages: OCRPageResult[] = [];
+    const warnings: string[] = [];
+
+    const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.js');
+    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer, disableWorker: true });
+    const pdfDoc = await loadingTask.promise;
+
+    const pageCount = pdfDoc.numPages || 1;
+    const pagesToProcess = Math.min(pageCount, maxPages);
+
+    let combinedText = '';
+    let confidenceSum = 0;
+
+    for (let pageNumber = 1; pageNumber <= pagesToProcess; pageNumber += 1) {
+      const page = await pdfDoc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const context = canvas.getContext('2d');
+
+      await page.render({ canvasContext: context as any, viewport }).promise;
+
+      const imageBuffer = canvas.toBuffer('image/png');
+      const imageFile = new File([imageBuffer], `page-${pageNumber}.png`, { type: 'image/png' });
+
+      const pageOcr = await this.extractFromImage(imageFile);
+      const pageResult = pageOcr.pages[0];
+
+      pages.push({
+        ...pageResult,
+        page_number: pageNumber,
+      });
+
+      combinedText += `${pageResult.text}\n\n`;
+      confidenceSum += pageResult.confidence;
+
+      if (pageOcr.warnings.length > 0) {
+        warnings.push(...pageOcr.warnings);
+      }
+    }
+
+    const avgConfidence = pages.length > 0 ? confidenceSum / pages.length : 0;
+
+    return {
+      text: combinedText.trim(),
+      confidence: avgConfidence,
+      language: this.detectLanguage(combinedText),
+      page_count: pageCount,
+      processing_time_ms: Date.now() - startTime,
+      warnings,
+      pages,
+    };
   }
 
   /**
