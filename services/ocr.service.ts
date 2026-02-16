@@ -160,7 +160,7 @@ export class OCRService {
     const pages: OCRPageResult[] = [];
     const warnings: string[] = [];
 
-    const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.js');
+    const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer, disableWorker: true });
     const pdfDoc = await loadingTask.promise;
 
@@ -179,7 +179,7 @@ export class OCRService {
       await page.render({ canvasContext: context as any, viewport }).promise;
 
       const imageBuffer = canvas.toBuffer('image/png');
-      const imageFile = new File([imageBuffer], `page-${pageNumber}.png`, { type: 'image/png' });
+      const imageFile = new File([new Uint8Array(imageBuffer)], `page-${pageNumber}.png`, { type: 'image/png' });
 
       const pageOcr = await this.extractFromImage(imageFile);
       const pageResult = pageOcr.pages[0];
