@@ -110,27 +110,45 @@ export class OCRService {
       } else {
         warnings.push('Low text content detected in PDF. Attempting OCR fallback.');
 
-        // Fallback: attempt OCR directly on the PDF binary (best-effort)
-        const imageResult = await this.extractFromImage(file);
-        pages.push(imageResult.pages[0]);
-        totalText = imageResult.text;
-        totalConfidence = imageResult.confidence;
-        pageCount = imageResult.page_count || pageCount;
-        if (imageResult.warnings.length > 0) {
-          warnings = [...warnings, ...imageResult.warnings];
+        const cloudResult = await this.extractWithCloudOcr(file);
+        if (cloudResult && cloudResult.text && cloudResult.text.length > 20) {
+          pages.push(...cloudResult.pages);
+          totalText = cloudResult.text;
+          totalConfidence = cloudResult.confidence;
+          pageCount = cloudResult.page_count;
+          warnings = [...warnings, ...(cloudResult.warnings || [])];
+        } else {
+          // Fallback: attempt OCR directly on the PDF binary (best-effort)
+          const imageResult = await this.extractFromImage(file);
+          pages.push(imageResult.pages[0]);
+          totalText = imageResult.text;
+          totalConfidence = imageResult.confidence;
+          pageCount = imageResult.page_count || pageCount;
+          if (imageResult.warnings.length > 0) {
+            warnings = [...warnings, ...imageResult.warnings];
+          }
         }
       }
 
     } catch (error) {
       warnings.push(`PDF processing error: ${error instanceof Error ? error.message : 'Unknown'}`);
       try {
-        const imageResult = await this.extractFromImage(file);
-        pages.push(imageResult.pages[0]);
-        totalText = imageResult.text;
-        totalConfidence = imageResult.confidence;
-        pageCount = imageResult.page_count || pageCount;
-        if (imageResult.warnings.length > 0) {
-          warnings = [...warnings, ...imageResult.warnings];
+        const cloudResult = await this.extractWithCloudOcr(file);
+        if (cloudResult && cloudResult.text && cloudResult.text.length > 20) {
+          pages.push(...cloudResult.pages);
+          totalText = cloudResult.text;
+          totalConfidence = cloudResult.confidence;
+          pageCount = cloudResult.page_count;
+          warnings = [...warnings, ...(cloudResult.warnings || [])];
+        } else {
+          const imageResult = await this.extractFromImage(file);
+          pages.push(imageResult.pages[0]);
+          totalText = imageResult.text;
+          totalConfidence = imageResult.confidence;
+          pageCount = imageResult.page_count || pageCount;
+          if (imageResult.warnings.length > 0) {
+            warnings = [...warnings, ...imageResult.warnings];
+          }
         }
       } catch (fallbackError) {
         warnings.push(`PDF OCR fallback failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown'}`);
@@ -196,6 +214,13 @@ export class OCRService {
         warnings.push('Very little text detected. Document may be blank or low quality.');
       }
 
+      if (text.length < 20 || confidence < this.config.quality_threshold) {
+        const cloudResult = await this.extractWithCloudOcr(file);
+        if (cloudResult && cloudResult.text && cloudResult.text.length > text.length) {
+          return cloudResult;
+        }
+      }
+
       const processingTime = Date.now() - startTime;
       const detectedLanguage = this.detectLanguage(text);
 
@@ -222,6 +247,43 @@ export class OCRService {
         `Image OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         500
       );
+    }
+  }
+
+  private async extractWithCloudOcr(file: File): Promise<OCRResult | null> {
+    const ocrUrl = process.env.OCR_SERVICE_URL;
+    if (!ocrUrl) {
+      return null;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+
+      const response = await fetch(`${ocrUrl}/ocr`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Cloud OCR error:', text);
+        return null;
+      }
+
+      const data = await response.json();
+      return {
+        text: data.text || '',
+        confidence: data.confidence || 0,
+        language: data.language || 'eng',
+        page_count: data.page_count || 1,
+        processing_time_ms: 0,
+        warnings: data.warnings || [],
+        pages: data.pages || [],
+      } as OCRResult;
+    } catch (error) {
+      console.error('Cloud OCR request failed:', error);
+      return null;
     }
   }
 
