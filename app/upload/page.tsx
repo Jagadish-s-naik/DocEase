@@ -16,6 +16,15 @@ export default function UploadPage() {
   const [processing, setProcessing] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  const parseErrorResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+    const text = await response.text();
+    return { error: text };
+  };
+
   // Redirect if not authenticated
   useEffect(() => {
     console.log('Upload page - Auth state:', { user: !!user, authLoading });
@@ -58,7 +67,7 @@ export default function UploadPage() {
       });
 
       if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
+        const error = await parseErrorResponse(uploadResponse);
         throw new Error(error.error || 'Upload failed');
       }
 
@@ -82,7 +91,7 @@ export default function UploadPage() {
       });
 
       if (!processResponse.ok) {
-        const errorData = await processResponse.json();
+        const errorData = await parseErrorResponse(processResponse);
         console.error('Processing API error:', errorData);
         throw new Error(errorData.error || 'Processing failed to start');
       }

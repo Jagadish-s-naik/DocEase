@@ -38,6 +38,15 @@ export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const parseErrorResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+    const text = await response.text();
+    return { error: text };
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/auth');
@@ -392,7 +401,7 @@ export default function DashboardPage() {
                                     body: JSON.stringify({ documentId: doc.id }),
                                   });
                                   if (!response.ok) {
-                                    const errorData = await response.json();
+                                    const errorData = await parseErrorResponse(response);
                                     console.error('Process error:', errorData);
                                     toast.error(errorData.error || 'Processing failed');
                                   } else {
