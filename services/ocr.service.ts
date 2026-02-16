@@ -111,7 +111,7 @@ export class OCRService {
       } else {
         warnings.push('Low text content detected in PDF. Attempting OCR on rendered pages.');
 
-        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 3);
+        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 5);
         pages.push(...ocrResult.pages);
         totalText = ocrResult.text;
         totalConfidence = ocrResult.confidence;
@@ -126,7 +126,7 @@ export class OCRService {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdfBuffer = Buffer.from(arrayBuffer);
-        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 3);
+        const ocrResult = await this.extractFromPdfPagesWithOcr(pdfBuffer, 5);
         pages.push(...ocrResult.pages);
         totalText = ocrResult.text;
         totalConfidence = ocrResult.confidence;
@@ -170,9 +170,11 @@ export class OCRService {
     let combinedText = '';
     let confidenceSum = 0;
 
+    const renderScale = 2.5;
+
     for (let pageNumber = 1; pageNumber <= pagesToProcess; pageNumber += 1) {
       const page = await pdfDoc.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: 2 });
+      const viewport = page.getViewport({ scale: renderScale });
       const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
       const context = canvas.getContext('2d');
 
