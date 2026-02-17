@@ -251,35 +251,55 @@ export class OCRService {
   }
 
   private async extractWithCloudOcr(file: File): Promise<OCRResult | null> {
-    const ocrUrl = process.env.OCR_SERVICE_URL;
-    if (!ocrUrl) {
-      return null;
-    }
-
     try {
       const formData = new FormData();
+      formData.append('filename', file.name);
+      formData.append('apikey', 'K87899142372222'); // Free OCR.space API key
+      formData.append('isOverlayRequired', 'false');
+      formData.append('fileurl', '');
       formData.append('file', file, file.name);
 
-      const response = await fetch(`${ocrUrl}/ocr`, {
+      // Use OCR.space free API endpoint
+      const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        console.error('Cloud OCR error:', text);
+        console.error('OCR.space API returned status:', response.status);
         return null;
       }
 
       const data = await response.json();
+      
+      // Check if OCR.space returned an error
+      if (data.IsErroredOnProcessing === true || !data.ParsedText) {
+        console.warn('OCR.space error:', data.ErrorMessage);
+        return null;
+      }
+
+      const text = (data.ParsedText || '').trim();
+      const confidence = text.length > 20 ? 0.85 : 0.5; // Heuristic confidence
+      
+      const pages: OCRPageResult[] = [];
+      if (text.length > 0) {
+        pages.push({
+          page_number: 1,
+          text: text,
+          confidence: confidence,
+          rotation_applied: 0,
+          quality_score: this.calculateQualityScore(confidence, text.length),
+        });
+      }
+
       return {
-        text: data.text || '',
-        confidence: data.confidence || 0,
-        language: data.language || 'eng',
-        page_count: data.page_count || 1,
+        text: text,
+        confidence: confidence,
+        language: this.detectLanguage(text),
+        page_count: 1,
         processing_time_ms: 0,
-        warnings: data.warnings || [],
-        pages: data.pages || [],
+        warnings: data.ErrorMessage ? [`OCR.space: ${data.ErrorMessage}`] : [],
+        pages: pages,
       } as OCRResult;
     } catch (error) {
       console.error('Cloud OCR request failed:', error);
