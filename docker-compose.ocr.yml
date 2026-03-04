@@ -1,7 +1,0 @@
-services:
-  ocr-service:
-    build: ./ocr-service
-    ports:
-      - "8001:8000"
-    environment:
-      OCR_MAX_PAGES: "5"
