@@ -74,8 +74,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
-
+  // Don't call auth methods here to avoid race conditions
+  // Just let the cookies flow through for client-side auth
+  
   // Apply security headers
   response = applySecurityHeaders(response);
   
