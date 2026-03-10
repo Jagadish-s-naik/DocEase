@@ -2,6 +2,35 @@
   "name": "docease",
   "version": "1.0.0",
   "description": "AI Document Simplifier for Common People - Production Ready",
+  "author": {
+    "name": "Jagadish S Naik",
+    "email": "jagadishsnaik@example.com",
+    "url": "https://github.com/jagadishsnaik"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jagadishsnaik/DocEase.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jagadishsnaik/DocEase/issues"
+  },
+  "homepage": "https://github.com/jagadishsnaik/DocEase#readme",
+  "keywords": [
+    "document-simplifier",
+    "ai",
+    "ocr",
+    "pdf-processing",
+    "document-analysis",
+    "machine-learning",
+    "nextjs",
+    "typescript",
+    "supabase",
+    "legal-documents",
+    "medical-documents",
+    "translation",
+    "nlp"
+  ],
   "private": true,
   "scripts": {
     "dev": "next dev",
